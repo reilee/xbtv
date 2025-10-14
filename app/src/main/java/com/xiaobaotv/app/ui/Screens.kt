@@ -33,6 +33,8 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.ui.PlayerView
 import android.widget.FrameLayout
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.ui.unit.Dp
 
 @Composable
 fun MainScreen(viewModel: MainViewModel) {
@@ -103,40 +105,94 @@ sealed class Screen {
 fun HomeScreen(
     categories: List<Category>,
     onCategoryClick: (Category) -> Unit,
-    onSearch: (String) -> Unit
+    onSearch: (String) -> Unit,
+    videos: List<Video> = emptyList(), // 推荐视频列表，默认为空
+    onVideoClick: (Video) -> Unit = {}
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF1A1A1A))
-            .padding(48.dp)
+            .padding(16.dp)
     ) {
         Text(
             text = "小宝影院",
             style = MaterialTheme.typography.headlineLarge,
             color = Color.White,
-            modifier = Modifier.padding(bottom = 32.dp)
+            modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        LazyColumn {
-            items(categories) { category ->
-                CategoryCard(
-                    category = category,
-                    onClick = { onCategoryClick(category) }
-                )
+        // 分类选择（3列网格）
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val gridColumns = 3
+            val spacing = 12.dp
+            val totalSpacing = spacing * (gridColumns - 1)
+            val cardWidthDp = (maxWidth - totalSpacing) / gridColumns
+            val cardHeightDp = maxHeight / 3
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(gridColumns),
+                horizontalArrangement = Arrangement.spacedBy(spacing),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                modifier = Modifier
+                    .fillMaxWidth()
+            ) {
+                items(categories) { category ->
+                    CategoryCard(
+                        category = category,
+                        onClick = { onCategoryClick(category) },
+                        width = cardWidthDp,
+                        height = cardHeightDp
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 视频网格（海报墙样式，4列）
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            val gridColumns = 4
+            val spacing = 16.dp
+            val totalSpacing = spacing * (gridColumns - 1)
+            val cardWidthDp = (maxWidth - totalSpacing) / gridColumns
+            val cardWidthPx = with(LocalContext.current.resources.displayMetrics) { cardWidthDp.value * density }
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(gridColumns),
+                horizontalArrangement = Arrangement.spacedBy(spacing),
+                verticalArrangement = Arrangement.spacedBy(spacing),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(videos) { video ->
+                    VideoCard(
+                        video = video,
+                        onClick = { onVideoClick(video) },
+                        width = cardWidthDp
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun CategoryCard(category: Category, onClick: () -> Unit) {
+fun CategoryCard(
+    category: Category,
+    onClick: () -> Unit,
+    width: Dp,
+    height: Dp
+) {
     var isFocused by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .width(width)
+            .height(height)
+            .padding(vertical = 4.dp)
             .onFocusChanged { isFocused = it.isFocused },
         colors = CardDefaults.cardColors(
             containerColor = if (isFocused) Color(0xFF3A3A3A) else Color(0xFF2A2A2A)
@@ -145,8 +201,7 @@ fun CategoryCard(category: Category, onClick: () -> Unit) {
         Button(
             onClick = onClick,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp),
+                .fillMaxSize(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.Transparent
             )
@@ -154,7 +209,9 @@ fun CategoryCard(category: Category, onClick: () -> Unit) {
             Text(
                 text = category.name,
                 style = MaterialTheme.typography.headlineMedium,
-                color = Color.White
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -204,12 +261,16 @@ fun VideoListScreen(
 }
 
 @Composable
-fun VideoCard(video: Video, onClick: () -> Unit) {
+fun VideoCard(
+    video: Video,
+    onClick: () -> Unit,
+    width: Dp = 280.dp
+) {
     var isFocused by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
-            .width(280.dp)
+            .width(width)
             .onFocusChanged { isFocused = it.isFocused },
         colors = CardDefaults.cardColors(
             containerColor = if (isFocused) Color(0xFF3A3A3A) else Color(0xFF2A2A2A)
@@ -223,7 +284,7 @@ fun VideoCard(video: Video, onClick: () -> Unit) {
                 contentDescription = video.title,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .aspectRatio(0.7f)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
