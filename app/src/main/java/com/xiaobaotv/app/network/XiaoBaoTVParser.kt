@@ -1,16 +1,26 @@
 package com.xiaobaotv.app.network
 
 import android.util.Log
+import com.xiaobaotv.app.model.Category
+import com.xiaobaotv.app.model.Episode
+import com.xiaobaotv.app.model.PlayLine
+import com.xiaobaotv.app.model.Video
+import com.xiaobaotv.app.model.VideoDetail
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-import com.xiaobaotv.app.model.*
+import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
 class XiaoBaoTVParser {
+    companion object {
+        // 匹配 background-image: url("...") 或 url('...') 或 url(...)，尽量宽松
+        private val STYLE_URL_REGEX = Regex("background-image\\s*:\\s*url\\([\"']?(.*?)[\"']?\\)", RegexOption.IGNORE_CASE)
+    }
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
@@ -42,11 +52,27 @@ class XiaoBaoTVParser {
             parseVideoList(doc)
         }
 
-    // 搜索视频
+    // 搜索视频（增加中文及特殊字符 URL 编码 + 兼容结构）
     suspend fun searchVideos(keyword: String): List<Video> = withContext(Dispatchers.IO) {
-        val url = "$baseUrl/search.html?wd=$keyword"
+        if (keyword.isBlank()) return@withContext emptyList()
+        val encoded = try { URLEncoder.encode(keyword, "UTF-8") } catch (_: Exception) { keyword }
+        val url = "$baseUrl/search.html?wd=$encoded"
         val doc = fetchDocument(url)
-        parseVideoList(doc)
+        Log.d("XiaoBaoTVParser", "searchVideos url=$url")
+        // 优先使用搜索专用结构解析
+        val searchList = parseSearchList(doc)
+        if (searchList.isNotEmpty()) {
+            Log.d("XiaoBaoTVParser", "searchVideos(searchList) size=${searchList.size}")
+            return@withContext searchList
+        }
+        val list = parseVideoList(doc)
+        if (list.isNotEmpty()) {
+            Log.d("XiaoBaoTVParser", "searchVideos(common) size=${list.size}")
+            return@withContext list
+        }
+        val fallback = parseVideoListFallback(doc)
+        Log.d("XiaoBaoTVParser", "searchVideos(fallback) size=${fallback.size}")
+        fallback
     }
 
     // 获取视频详情
@@ -68,20 +94,63 @@ class XiaoBaoTVParser {
         match?.groupValues?.get(1)?.replace("\\/", "/") ?: ""
     }
 
-    // 解析视频列表
+    // 解析视频列表（主选择器）
     private fun parseVideoList(doc: Document): List<Video> {
-        return doc.select(".myui-vodlist__box").map { element ->
-            val link = element.selectFirst("a")
-            val title = link?.attr("title") ?: ""
-            val coverUrl = link?.attr("data-original") ?: ""
-            val detailUrl = link?.attr("href") ?: ""
+        val list = doc.select(".myui-vodlist__box").mapNotNull { element ->
+            val link = element.selectFirst("a") ?: return@mapNotNull null
+            val title = link.attr("title").ifBlank { link.text() }
+            var coverUrl = link.attr("data-original")
+            if (coverUrl.isBlank()) {
+                val style = link.attr("style")
+                STYLE_URL_REGEX.find(style)?.let { coverUrl = it.groupValues[1] }
+            }
+            val detailUrl = link.attr("href")
+            if (!detailUrl.contains("/vod/detail/")) return@mapNotNull null
             val year = element.selectFirst(".pic-tag .tag")?.text() ?: ""
             val status = element.selectFirst(".pic-text")?.text() ?: ""
+            val id = detailUrl.substringAfter("/vod/detail/").substringBefore(".html")
+            Video(id, title, normalizeUrl(coverUrl), year, status, detailUrl)
+        }
+        if (list.isNotEmpty()) Log.d("XiaoBaoTVParser", "parseVideoList size=${list.size}")
+        return list
+    }
 
-            val id = detailUrl.substringAfter("/vod/detail/")
-                .substringBefore(".html")
+    // 新增：搜索结果 ul#searchList 结构解析（每个 li 是一个条目）
+    private fun parseSearchList(doc: Document): List<Video> {
+        val listRoot = doc.selectFirst("ul#searchList") ?: return emptyList()
+        return listRoot.select("> li").mapNotNull { li ->
+            val a = li.selectFirst("div.thumb a.myui-vodlist__thumb") ?: return@mapNotNull null
+            val detailUrl = a.attr("href")
+            if (!detailUrl.contains("/vod/detail/")) return@mapNotNull null
+            val title = li.selectFirst("h4.title a")?.text()?.trim().takeUnless { it.isNullOrBlank() } ?: a.attr("title")
+            var coverUrl = a.attr("data-original")
+            if (coverUrl.isBlank()) {
+                val style = a.attr("style")
+                STYLE_URL_REGEX.find(style)?.let { coverUrl = it.groupValues[1] }
+            }
+            val year = a.selectFirst(".pic-tag .tag")?.text() ?: ""
+            val status = a.selectFirst(".pic-text")?.text() ?: ""
+            val id = detailUrl.substringAfter("/vod/detail/").substringBefore(".html")
+            Video(id, title ?: "", normalizeUrl(coverUrl), year, status, detailUrl)
+        }
+    }
 
-            Video(id, title, coverUrl, year, status, detailUrl)
+    // 备用：有些搜索结果或分类页面结构不同
+    private fun parseVideoListFallback(doc: Document): List<Video> {
+        return doc.select(".myui-vodlist__item, .vodlist__thumb").mapNotNull { element ->
+            val link = element.selectFirst("a") ?: return@mapNotNull null
+            val title = link.attr("title").ifBlank { link.text() }
+            var coverUrl = link.attr("data-original").ifBlank { link.attr("src") }
+            if (coverUrl.isBlank()) {
+                val style = link.attr("style")
+                STYLE_URL_REGEX.find(style)?.let { coverUrl = it.groupValues[1] }
+            }
+            val detailUrl = link.attr("href")
+            if (!detailUrl.contains("/vod/detail/")) return@mapNotNull null
+            val year = element.selectFirst(".pic-tag, .tag, .note")?.text() ?: ""
+            val status = element.selectFirst(".pic-text, .status, .note")?.text() ?: ""
+            val id = detailUrl.substringAfter("/vod/detail/").substringBefore(".html")
+            Video(id, title, normalizeUrl(coverUrl), year, status, detailUrl)
         }
     }
 
@@ -152,6 +221,17 @@ class XiaoBaoTVParser {
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw Exception("请求失败: ${response.code}")
             return response.body?.string() ?: ""
+        }
+    }
+
+    // 规范化封面 URL：如果为空或非 http(s) 则返回原值；如果是 // 开头补 https:
+    private fun normalizeUrl(raw: String): String {
+        if (raw.isBlank()) return raw
+        return when {
+            raw.startsWith("http://") || raw.startsWith("https://") -> raw
+            raw.startsWith("//") -> "https:$raw"
+            raw.startsWith("/") -> baseUrl + raw // 站内相对路径
+            else -> raw
         }
     }
 }

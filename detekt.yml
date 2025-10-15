@@ -1,0 +1,55 @@
+build:
+  maxIssues: 0
+config:
+  validation: true
+processors:
+  active: true
+  exclude:
+    - 'DetektProgressListener'
+console-reports:
+  active: true
+  exclude: [ 'ProjectStatisticsReport', 'ComplexityReport' ]
+output-reports:
+  active: true
+  exclude: []
+style:
+  MagicNumber:
+    active: false
+  WildcardImport:
+    active: true
+  UnusedImports:
+    active: true
+  UnusedPrivateMember:
+    active: true
+  MaxLineLength:
+    active: true
+    maxLineLength: 160
+naming:
+  PackageNaming:
+    active: true
+  FunctionNaming:
+    active: true
+  TopLevelPropertyNaming:
+    active: true
+  VariableNaming:
+    active: true
+  MatchingDeclarationName:
+    active: true
+potential-bugs:
+  LateinitUsage:
+    active: true
+  Deprecation:
+    active: true
+complexity:
+  LongMethod:
+    active: true
+    threshold: 120
+  LongParameterList:
+    active: true
+    functionThreshold: 8
+    constructorThreshold: 8
+performance:
+  active: true
+coroutines:
+  active: true
+

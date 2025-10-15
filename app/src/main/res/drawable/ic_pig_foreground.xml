@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="256"
+    android:viewportHeight="256">
+    <!-- 头部背景圆（可根据需要删除以使用独立 adaptive 背景色） -->
+    <path
+        android:fillColor="#1A1A1A"
+        android:pathData="M128,8a120,120 0 1,0 0,240a120,120 0 1,0 0,-240" />
+    <!-- 头部主圆 -->
+    <path
+        android:fillColor="#FFC1CC"
+        android:pathData="M128,56a72,72 0 1,0 0,144a72,72 0 1,0 0,-144" />
+    <!-- 左耳 -->
+    <path
+        android:fillColor="#FFC1CC"
+        android:pathData="M88,52c-10,0 -20,8 -22,18c-1,6 2,11 6,12c4,1 9,-3 13,-7c4,-5 10,-10 12,-14c1,-2 -4,-9 -9,-9z" />
+    <!-- 右耳 -->
+    <path
+        android:fillColor="#FFC1CC"
+        android:pathData="M168,52c5,0 10,7 9,9c-2,4 -8,9 -12,14c-4,4 -9,8 -13,7c-4,-1 -7,-6 -6,-12c2,-10 12,-18 22,-18z" />
+    <!-- 鼻子底椭圆 -->
+    <path
+        android:fillColor="#FFD3DB"
+        android:pathData="M128,134c-24,0 -40,13 -40,28c0,15 16,28 40,28c24,0 40,-13 40,-28c0,-15 -16,-28 -40,-28z" />
+    <!-- 鼻孔左 -->
+    <path
+        android:fillColor="#D97080"
+        android:pathData="M112,150a8,10 0 1,0 0,0.1z" />
+    <!-- 鼻孔右 -->
+    <path
+        android:fillColor="#D97080"
+        android:pathData="M144,150a8,10 0 1,0 0,0.1z" />
+    <!-- 眼睛左 -->
+    <path
+        android:fillColor="#5A3A42"
+        android:pathData="M104,120a6,10 0 1,0 0,0.1z" />
+    <!-- 眼睛右 -->
+    <path
+        android:fillColor="#5A3A42"
+        android:pathData="M152,120a6,10 0 1,0 0,0.1z" />
+    <!-- 底部品牌橙点缀 -->
+    <path
+        android:fillColor="#EB9100"
+        android:fillAlpha="0.85"
+        android:pathData="M100,196c10,6 18,8 28,8c10,0 18,-2 28,-8c-4,10 -18,16 -28,16c-10,0 -24,-6 -28,-16z" />
+</vector>
+

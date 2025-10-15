@@ -1,4 +1,8 @@
 <resources>
-
-
+    <!-- 使用 AppCompat DayNight 作为基础，保证资源存在 -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">#FF1A1A1A</item>
+        <item name="android:colorBackground">#FF1A1A1A</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
 </resources>
