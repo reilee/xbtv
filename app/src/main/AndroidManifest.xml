@@ -17,7 +17,8 @@
     <!-- 改为直接使用矢量图标，避免 adaptive icon 前景/背景中不受支持资源导致崩溃 -->
     <application
         android:allowBackup="true"
-        android:icon="@drawable/ic_pig_foreground"
+        android:banner="@drawable/ic_happy_pig"
+        android:icon="@drawable/ic_happy_pig"
         android:label="小宝影院"
         android:theme="@style/AppTheme">
 
