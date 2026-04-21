@@ -3,6 +3,7 @@ package com.xiaobaotv.app.ui
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -122,34 +123,44 @@ fun VideoCard(
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .width(width)
             .onFocusChanged { focused = it.isFocused }
+            .then(
+                if (focused) Modifier.border(2.dp, Color.White, RoundedCornerShape(10.dp))
+                else Modifier
+            )
             .tvActivate { onClick() }
             .clickable { onClick() }
             .focusable(),
         shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
-        Column(Modifier.padding(6.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth()
+        ) {
             AsyncImage(
                 model = video.coverUrl,
                 contentDescription = video.title,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(0.72f) // 常见的电影海报比例
+                    .aspectRatio(0.72f)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color(0xFF2A2A2A))
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             Text(
                 text = video.title,
-                fontSize = 14.sp,
+                fontSize = 15.sp,
                 color = Color.White,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = FontWeight.Medium
             )
+            Spacer(Modifier.height(4.dp))
             Text(
                 text = "${video.year} · ${video.status}",
-                fontSize = 11.sp,
-                color = Color.Gray,
+                fontSize = 12.sp,
+                color = Color.LightGray,
                 maxLines = 1
             )
         }
@@ -172,12 +183,17 @@ fun EpisodeButton(
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.2f else 1f, tween(150), label = "episodeScale")
+    val accentColor = Color(0xFFFF6B6B)
     
     val finalModifier = modifier
         .zIndex(if (focused) 1f else 0f)
         .graphicsLayer(scaleX = scale, scaleY = scale)
         .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
         .onFocusChanged { focused = it.isFocused }
+        .then(
+            if (focused) Modifier.border(2.dp, Color.White, CommonButtonShape)
+            else Modifier
+        )
         .tvActivate { onPlayClick(episode.playUrl) }
         .focusable()
 

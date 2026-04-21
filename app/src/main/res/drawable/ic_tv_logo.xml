@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="1024dp"
+    android:height="1024dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+
+    <!-- 播放按钮 (三角形) -->
+    <path
+        android:fillColor="#EB9100"
+        android:pathData="M420,380l240,132l-240,132z"/>
+
+    <!-- 网络播发概念：右侧发散圆弧 -->
+    <path
+        android:strokeColor="#EB9100"
+        android:strokeWidth="40"
+        android:strokeLineCap="round"
+        android:pathData="M750,400c40,40 40,184 0,224"/>
+    <path
+        android:strokeColor="#EB9100"
+        android:strokeWidth="40"
+        android:strokeLineCap="round"
+        android:pathData="M830,340c60,60 60,284 0,344"/>
+</vector>

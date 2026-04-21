@@ -28,6 +28,7 @@ import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,9 +37,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
@@ -46,6 +44,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,6 +58,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -83,9 +83,9 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -115,6 +115,7 @@ fun HomeScreen(
     var micFocused by remember { mutableStateOf(false) }
     var isListening by remember { mutableStateOf(false) }
     var showSearch by remember { mutableStateOf(false) }
+    var showExitDialog by remember { mutableStateOf(false) }
     var focusVideoGridAfterSelection by remember { mutableStateOf(false) }
 
     val accent = Color(0xFFEB9100)
@@ -133,10 +134,35 @@ fun HomeScreen(
         }
     }
 
-    // 搜索模式下拦截返回键以关闭搜索
-    BackHandler(enabled = showSearch) {
-        showSearch = false
-        keyboardController?.hide()
+    // 处理返回键逻辑：搜索模式下关闭搜索，首页模式下弹出退出确认
+    BackHandler(enabled = isVisible) {
+        if (showSearch) {
+            showSearch = false
+            keyboardController?.hide()
+        } else {
+            showExitDialog = true
+        }
+    }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { showExitDialog = false },
+            title = { Text("确认退出", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { Text("确定要离开小宝影院吗？更多精彩内容等着你哦。", color = Color.White.copy(alpha = 0.8f)) },
+            confirmButton = {
+                TextButton(onClick = { (context as? Activity)?.finish() }) {
+                    Text("确认退出", color = Color(0xFFFF6B6B))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) {
+                    Text("再看一会", color = Color.White)
+                }
+            },
+            containerColor = Color(0xFF2A2A2A),
+            titleContentColor = Color.White,
+            textContentColor = Color.White
+        )
     }
 
     /** 提交搜索任务 */
@@ -221,7 +247,7 @@ fun HomeScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_happy_pig),
+                painter = painterResource(id = R.drawable.ic_tv_logo),
                 contentDescription = "App 图标",
                 modifier = Modifier.size(52.dp)
             )
@@ -238,7 +264,7 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .tabIndicatorOffset(tabPositions[selectedCategoryIndex])
                                     .height(3.dp),
-                                color = Color(0xFFEB9100)
+                                color = Color.White
                             )
                         }
                     },
@@ -365,21 +391,22 @@ fun HomeScreen(
 
         // 视频网格：改为使用 LazyColumn + Row 以获得最稳定的 TV 焦点交互
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val gridColumns = 6
-            val spacing = 16.dp
+            val gridColumns = 8
+            val spacing = 12.dp
             val totalSpacing = spacing * (gridColumns - 1)
             val cardWidth = (maxWidth - totalSpacing) / gridColumns
             
             val videoRows = remember(videos) { videos.chunked(gridColumns) }
 
             LazyColumn(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 32.dp)
             ) {
                 itemsIndexed(videoRows) { rowIndex, rowVideos ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = spacing / 2)
+                            .padding(vertical = 12.dp)
                             .focusGroup(),
                         horizontalArrangement = Arrangement.spacedBy(spacing)
                     ) {
