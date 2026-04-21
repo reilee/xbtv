@@ -4,7 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,7 +50,7 @@ import com.xiaobaotv.app.model.PlayLine
  * @param resumePlayUrl 可选的续播地址，用于自动定位当前播放的线路和集数
  * @param onPlayClick 点击播放时的回调，传递包含上下文信息的 RecentWatchItem
  */
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun VideoDetailScreen(
     videoDetail: VideoDetail,
@@ -193,46 +197,43 @@ fun VideoDetailScreen(
                 }
             }
 
-            // 3. 集数列表区域：多行展示
+            // 3. 集数列表区域：自适应多行展示
             item {
                 val currentLine = lines.getOrNull(selectedLineIndex)
                 val episodes = currentLine?.episodes.orEmpty()
                 
                 if (episodes.isNotEmpty()) {
-                    val columns = 6
-                    Column(
+                    FlowRow(
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusGroup(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        episodes.chunked(columns).forEachIndexed { rowIndex, rowEpisodes ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                rowEpisodes.forEachIndexed { colIndex, ep ->
-                                    val flatIndex = rowIndex * columns + colIndex
-                                    val isTarget = flatIndex == targetEpisodeIndex
-                                    
-                                    EpisodeButton(
-                                        episode = ep,
-                                        focusRequester = if (isTarget) targetEpisodeFocusRequester else null,
-                                        onPlayClick = { _ ->
-                                            onPlayClick(
-                                                RecentWatchItem(
-                                                    detailUrl = "/vod/detail/${videoDetail.id}.html",
-                                                    title = videoDetail.title,
-                                                    coverUrl = videoDetail.coverUrl,
-                                                    year = videoDetail.year,
-                                                    status = "${currentLine?.name} · ${ep.name}",
-                                                    playUrl = ep.playUrl,
-                                                    episodeName = ep.name,
-                                                    episodeIndex = flatIndex,
-                                                    lineName = currentLine?.name ?: "",
-                                                    updatedAt = System.currentTimeMillis()
-                                                )
+                        episodes.forEachIndexed { index, ep ->
+                            val isTarget = index == targetEpisodeIndex
+                            
+                            Box(modifier = Modifier.widthIn(min = 80.dp)) {
+                                EpisodeButton(
+                                    episode = ep,
+                                    focusRequester = if (isTarget) targetEpisodeFocusRequester else null,
+                                    onPlayClick = { _ ->
+                                        onPlayClick(
+                                            RecentWatchItem(
+                                                detailUrl = "/vod/detail/${videoDetail.id}.html",
+                                                title = videoDetail.title,
+                                                coverUrl = videoDetail.coverUrl,
+                                                year = videoDetail.year,
+                                                status = "${currentLine?.name} · ${ep.name}",
+                                                playUrl = ep.playUrl,
+                                                episodeName = ep.name,
+                                                episodeIndex = index,
+                                                lineName = currentLine?.name ?: "",
+                                                updatedAt = System.currentTimeMillis()
                                             )
-                                        }
-                                    )
-                                }
+                                        )
+                                    }
+                                )
                             }
                         }
                     }

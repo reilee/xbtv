@@ -25,6 +25,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,6 +39,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -120,7 +123,15 @@ fun HomeScreen(
     val categoryFocusRequesters = remember(categories.size) { List(categories.size) { FocusRequester() } }
     val videoFocusRequesters = remember(videos.size) { List(videos.size) { FocusRequester() } }
     val keyboardController = LocalSoftwareKeyboardController.current
-    var focusedCategoryIndex by remember { mutableStateOf(-1) }
+    var focusedTabByRemote by remember { mutableStateOf(-1) }
+
+    // 防抖处理分类切换：焦点停留在某个 Tab 150ms 后才触发实际加载
+    LaunchedEffect(focusedTabByRemote) {
+        if (focusedTabByRemote != -1 && focusedTabByRemote != selectedCategoryIndex) {
+            kotlinx.coroutines.delay(150)
+            onSelectCategory(focusedTabByRemote, categories[focusedTabByRemote])
+        }
+    }
 
     // 搜索模式下拦截返回键以关闭搜索
     BackHandler(enabled = showSearch) {
@@ -246,14 +257,9 @@ fun HomeScreen(
                             modifier = Modifier
                                 .padding(end = 4.dp, top = 4.dp, bottom = 4.dp)
                                 .then(if (index in categoryFocusRequesters.indices) Modifier.focusRequester(categoryFocusRequesters[index]) else Modifier)
-                                .tvActivate {
-                                    onSelectCategory(index, cat)
-                                    focusVideoGridAfterSelection = true
-                                }
                                 .onFocusChanged {
-                                    focusedCategoryIndex = if (it.isFocused) index else if (focusedCategoryIndex == index) -1 else focusedCategoryIndex
-                                    if (it.isFocused && index != selectedCategoryIndex) {
-                                        onSelectCategory(index, cat)
+                                    if (it.isFocused) {
+                                        focusedTabByRemote = index
                                     }
                                 }
                                 .focusable(),
@@ -357,20 +363,43 @@ fun HomeScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        // 视频网格
+        // 视频网格：改为使用 LazyColumn + Row 以获得最稳定的 TV 焦点交互
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val gridColumns = 6
             val spacing = 16.dp
             val totalSpacing = spacing * (gridColumns - 1)
             val cardWidth = (maxWidth - totalSpacing) / gridColumns
-            LazyVerticalGrid(columns = GridCells.Fixed(gridColumns)) {
-                itemsIndexed(videos) { index, video ->
-                    VideoCard(
-                        video = video,
-                        onClick = { onVideoClick(video) },
-                        width = cardWidth,
-                        focusRequester = videoFocusRequesters.getOrNull(index)
-                    )
+            
+            val videoRows = remember(videos) { videos.chunked(gridColumns) }
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                itemsIndexed(videoRows) { rowIndex, rowVideos ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = spacing / 2)
+                            .focusGroup(),
+                        horizontalArrangement = Arrangement.spacedBy(spacing)
+                    ) {
+                        rowVideos.forEachIndexed { colIndex, video ->
+                            val globalIndex = rowIndex * gridColumns + colIndex
+                            VideoCard(
+                                video = video,
+                                onClick = { onVideoClick(video) },
+                                width = cardWidth,
+                                focusRequester = videoFocusRequesters.getOrNull(globalIndex)
+                            )
+                        }
+                        
+                        // 补充空白，保持对齐
+                        if (rowVideos.size < gridColumns) {
+                            repeat(gridColumns - rowVideos.size) {
+                                Spacer(modifier = Modifier.width(cardWidth))
+                            }
+                        }
+                    }
                 }
             }
             if (loading && videos.isEmpty()) {

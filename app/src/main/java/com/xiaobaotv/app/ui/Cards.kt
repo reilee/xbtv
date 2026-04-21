@@ -109,13 +109,14 @@ fun VideoCard(
     video: Video,
     onClick: () -> Unit,
     width: Dp,
+    modifier: Modifier = Modifier,
     focusRequester: FocusRequester? = null
 ) {
     var focused by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) 1.15f else 1f, tween(150), label = "videoScale")
     
     Card(
-        modifier = Modifier
+        modifier = modifier
             .zIndex(if (focused) 1f else 0f)
             .graphicsLayer(scaleX = scale, scaleY = scale)
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)

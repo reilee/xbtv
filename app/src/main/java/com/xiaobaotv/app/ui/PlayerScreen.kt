@@ -124,6 +124,7 @@ fun PlayerScreen(
     // 剧集列表可见与选择状态
     var showEpisodeList by remember { mutableStateOf(false) }
     var selectedEpisodeIndex by remember { mutableStateOf(-1) }
+    var isLoading by remember { mutableStateOf(false) }
 
     // 播放进度控制条可见与焦点状态
     var showSeekControls by remember { mutableStateOf(false) }
@@ -165,9 +166,10 @@ fun PlayerScreen(
 
     // 根据当前播放页解析并加载 m3u8
     LaunchedEffect(currentPlayPageUrl) {
-        m3u8Url = null // 切换剧集时先显示加载状态
+        isLoading = true
         val real = viewModel.getPlayUrl(currentPlayPageUrl)
         m3u8Url = real
+        isLoading = false
         real?.let { url ->
             val item = MediaItem.Builder()
                 .setUri(url)
@@ -272,7 +274,6 @@ fun PlayerScreen(
                 if (!isUp && !isDown) return@onPreviewKeyEvent false
 
                 val code = event.nativeKeyEvent.keyCode
-                val controllerVisible = playerViewRef?.isControllerFullyVisible == true
                 val now = System.currentTimeMillis()
 
                 // 1. 处理返回键：优先关闭自定义 UI
@@ -367,31 +368,34 @@ fun PlayerScreen(
                 }
             }
     ) {
-        // 播放器视图
-        m3u8Url?.let { _ ->
-            AndroidView(
-                factory = { ctx ->
-                    PlayerView(ctx).apply {
-                        player = exoPlayer
-                        useController = false // 完全使用定制 UI
-                        keepScreenOn = true
-                        layoutParams = FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.MATCH_PARENT,
-                            FrameLayout.LayoutParams.MATCH_PARENT
-                        )
-                        isFocusable = false
-                        isFocusableInTouchMode = false
-                        playerViewRef = this
-                    }
-                },
-                update = { pv ->
-                    playerViewRef = pv
-                    if (pv.player !== exoPlayer) pv.player = exoPlayer
-                    pv.useController = false
-                },
-                modifier = Modifier.fillMaxSize()
-            )
-        } ?: CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        // 播放器视图（始终保持挂载，避免 Surface 重建导致的黑屏）
+        AndroidView(
+            factory = { ctx ->
+                PlayerView(ctx).apply {
+                    player = exoPlayer
+                    useController = false // 完全使用定制 UI
+                    keepScreenOn = true
+                    layoutParams = FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT
+                    )
+                    isFocusable = false
+                    isFocusableInTouchMode = false
+                    playerViewRef = this
+                }
+            },
+            update = { pv ->
+                playerViewRef = pv
+                if (pv.player !== exoPlayer) pv.player = exoPlayer
+                pv.useController = false
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // 加载中状态
+        if (isLoading || m3u8Url == null) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+        }
 
         // 剧集列表 Overlay
         if (showEpisodeList && episodes.isNotEmpty()) {
