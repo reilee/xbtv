@@ -18,35 +18,42 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
-import com.xiaobaotv.app.model.Category
 import com.xiaobaotv.app.viewmodel.MainViewModel
 
-// 已迁移到 Navigation Compose：移除手写 sealed Screen 状态机
-
+/**
+ * 应用的主导航容器，管理首页、详情页和播放页之间的跳转
+ */
 @Composable
 fun MainScreen(viewModel: MainViewModel) {
     val categories by viewModel.categories.collectAsState()
     val videos by viewModel.videos.collectAsState()
     val videoDetail by viewModel.videoDetail.collectAsState()
     val loading by viewModel.loading.collectAsState()
+    val recentWatchEntries by viewModel.recentWatchEntries.collectAsState()
+    val pendingResumeEntry by viewModel.pendingResumeEntry.collectAsState()
 
-    // 保存选中分类索引，进程重建恢复
+    // 保存选中分类索引，支持进程重建恢复
     var selectedCategoryIndex by rememberSaveable { mutableStateOf(-1) }
 
-    // 初次或分类列表变化，自动选中第一个并加载
+    // 初次进入或分类列表加载后，自动选中第一个有效分类
     LaunchedEffect(categories) {
-        if (categories.isNotEmpty() && selectedCategoryIndex !in categories.indices) {
+        if (categories.isNotEmpty() && (selectedCategoryIndex < 0 || selectedCategoryIndex >= categories.size)) {
             selectedCategoryIndex = 0
-            viewModel.setSelectedCategory(categories[0]) // 内部会加载视频
+            viewModel.setSelectedCategory(categories[0])
         }
     }
 
     val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
 
     NavHost(navController = navController, startDestination = "home") {
+        // 首页
         composable("home") {
             HomeScreen(
+                isVisible = currentRoute == "home",
                 categories = categories,
                 selectedCategoryIndex = selectedCategoryIndex,
                 onSelectCategory = { idx, cat ->
@@ -59,17 +66,29 @@ fun MainScreen(viewModel: MainViewModel) {
                 videos = videos,
                 onVideoClick = { video ->
                     val cat = categories.getOrNull(selectedCategoryIndex)
-                        ?: Category("temp", "当前", "")
+                    // 如果在最近观看页面点击，尝试恢复之前的播放进度
+                    if (selectedCategoryIndex == 0) {
+                        val recent = recentWatchEntries.firstOrNull { it.detailUrl == video.detailUrl }
+                            ?: pendingResumeEntry?.takeIf { it.detailUrl == video.detailUrl }
+                        if (recent != null) {
+                            viewModel.setPendingResumeEntry(recent)
+                        }
+                    } else {
+                        viewModel.setPendingResumeEntry(null)
+                    }
                     viewModel.setSelectedVideo(video)
                     viewModel.loadVideoDetail(video.detailUrl)
-                    viewModel.setSelectedCategory(cat, fireLoad = false)
+                    if (cat != null) {
+                        viewModel.setSelectedCategory(cat, fireLoad = false)
+                    }
                     navController.navigate("detail")
                 },
                 loading = loading
             )
         }
+
+        // 详情页
         composable("detail") {
-            // 系统返回键直接返回上一层（NavController 已处理），这里可拦截特殊逻辑
             BackHandler(enabled = false) {}
             val detail = videoDetail
             if (detail == null) {
@@ -77,12 +96,17 @@ fun MainScreen(viewModel: MainViewModel) {
             } else {
                 VideoDetailScreen(
                     videoDetail = detail,
-                    onPlayClick = { playUrl ->
+                    resumePlayUrl = pendingResumeEntry?.playUrl,
+                    onPlayClick = { resumeEntry ->
+                        viewModel.setPendingResumeEntry(resumeEntry)
+                        val playUrl = resumeEntry.playUrl
                         navController.navigate("player/${Uri.encode(playUrl)}")
                     }
                 )
             }
         }
+
+        // 播放页
         composable(
             route = "player/{playUrl}",
             arguments = listOf(navArgument("playUrl") { type = NavType.StringType })
@@ -98,6 +122,9 @@ fun MainScreen(viewModel: MainViewModel) {
     }
 }
 
+/**
+ * 数据加载时的占位视图
+ */
 @Composable
 fun LoadingFallback() {
     Box(modifier = Modifier.fillMaxSize()) {

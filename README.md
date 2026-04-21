@@ -5,6 +5,7 @@
 ## 主要特性
 - Jetpack Compose UI
 - Navigation Compose 路由：`home` -> `detail` -> `player/{playUrl}`
+- 首页第一个标签为“最近观看”，最多保留 12 条播放记录并记住具体集数
 - ExoPlayer (Media3) 播放 M3U8
 - 协程 + 简单解析器（`XiaoBaoTVParser`）拉取分类、视频列表与详情
 - 内存缓存：播放地址(m3u8) / 视频详情
@@ -22,7 +23,7 @@ app/
 ## 导航说明
 | Route | 说明 | 参数 |
 |-------|------|------|
-| home | 分类 + 搜索 + 视频网格 | 无 |
+| home | 最近观看 + 分类 + 搜索 + 视频网格 | 无 |
 | detail | 某视频详情 + 播放线路/剧集 | 依赖 ViewModel 当前选中 videoDetail |
 | player/{playUrl} | 视频播放 | playUrl (经 Uri.encode) |
 
@@ -54,4 +55,3 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 ## License
 内部示例项目，未指定开源协议。
-
