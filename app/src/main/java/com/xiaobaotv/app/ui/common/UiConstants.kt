@@ -4,8 +4,8 @@ package com.xiaobaotv.app.ui.common
  * 界面显示相关的全局常量。
  */
 object UiConstants {
-    /** 播放器快进/快退的默认步进时长（10秒） */
-    const val SEEK_STEP_MS = 10_000L
+    /** 播放器快进/快退的默认步进时长（30秒） */
+    const val SEEK_STEP_MS = 30_000L
     
     /** 播放器进度条刷新的间隔时长 */
     const val HUD_PROGRESS_REFRESH_MS = 300L

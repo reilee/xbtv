@@ -15,6 +15,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -94,6 +99,7 @@ fun BoxScope.PlayerHud(
 fun BoxScope.PlayerSeekControls(
     positionMs: Long,
     durationMs: Long,
+    isPlaying: Boolean,
     visible: Boolean,
     focused: Boolean,
     focusRequester: FocusRequester,
@@ -103,7 +109,8 @@ fun BoxScope.PlayerSeekControls(
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(),
-        exit = fadeOut()
+        exit = fadeOut(),
+        modifier = Modifier.align(Alignment.BottomCenter)
     ) {
         val shape = RoundedCornerShape(12.dp)
         Column(
@@ -121,25 +128,40 @@ fun BoxScope.PlayerSeekControls(
                 .focusable()
                 .padding(horizontal = 20.dp, vertical = 14.dp),
         ) {
-            val posText = TimeFormatter.format(positionMs)
-            val durText = TimeFormatter.format(durationMs)
-            
-            // 交互式进度条（颜色更亮以示区别）
-            LinearProgressIndicator(
-                progress = if (durationMs > 0) positionMs.toFloat() / durationMs.toFloat() else 0f,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp),
-                color = Color(0xFFFF6B6B),
-                trackColor = Color.White.copy(alpha = 0.2f)
-            )
-            
-            Spacer(Modifier.height(8.dp))
-            
-            // 时间文本
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(posText, color = Color.White, fontSize = MaterialTheme.typography.labelMedium.fontSize)
-                Text(durText, color = Color.White, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    modifier = Modifier.size(32.dp),
+                    tint = Color.White
+                )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    val posText = TimeFormatter.format(positionMs)
+                    val durText = TimeFormatter.format(durationMs)
+                    
+                    // 交互式进度条（颜色更亮以示区别）
+                    LinearProgressIndicator(
+                        progress = if (durationMs > 0) positionMs.toFloat() / durationMs.toFloat() else 0f,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp),
+                        color = Color(0xFFFF6B6B),
+                        trackColor = Color.White.copy(alpha = 0.2f)
+                    )
+                    
+                    Spacer(Modifier.height(8.dp))
+                    
+                    // 时间文本
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(posText, color = Color.White, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                        Text(durText, color = Color.White, fontSize = MaterialTheme.typography.labelMedium.fontSize)
+                    }
+                }
             }
         }
     }

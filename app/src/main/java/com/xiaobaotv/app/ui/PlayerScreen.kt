@@ -71,7 +71,18 @@ fun PlayerScreen(
     val context = LocalContext.current
     var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
     val containerFocusRequester = remember { FocusRequester() }
-    var exoPlayer by remember { mutableStateOf<ExoPlayer?>(null) }
+    
+    // 整个屏幕生命周期内只创建一个 ExoPlayer
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            playWhenReady = true
+        }
+    }
+
+    // 确保退出时释放
+    DisposableEffect(exoPlayer) {
+        onDispose { exoPlayer.release() }
+    }
 
     // 详情（用于获取分集列表）
     val videoDetail by viewModel.videoDetail.collectAsState()
@@ -118,6 +129,7 @@ fun PlayerScreen(
     var showSeekControls by remember { mutableStateOf(false) }
     var seekControlsFocused by remember { mutableStateOf(false) }
     val seekControlsFocusRequester = remember { FocusRequester() }
+    var lastSeekControlsInteractionAt by remember { mutableStateOf(0L) }
 
     // 用户尝试显示分集列表但尚未有数据的标记
     var pendingShowList by remember { mutableStateOf(false) }
@@ -141,15 +153,29 @@ fun PlayerScreen(
         }
     }
 
+    // 进度控制条超时自动隐藏
+    LaunchedEffect(showSeekControls, lastSeekControlsInteractionAt) {
+        if (!showSeekControls || lastSeekControlsInteractionAt == 0L) return@LaunchedEffect
+        val snapshotTime = lastSeekControlsInteractionAt
+        delay(5_000)
+        if (showSeekControls && snapshotTime == lastSeekControlsInteractionAt) {
+            showSeekControls = false
+        }
+    }
+
     // 根据当前播放页解析并加载 m3u8
     LaunchedEffect(currentPlayPageUrl) {
-        m3u8Url = viewModel.getPlayUrl(currentPlayPageUrl)
-        m3u8Url?.let { real ->
-            exoPlayer?.let { p ->
-                val item = MediaItem.Builder().setUri(real).setMimeType(MimeTypes.APPLICATION_M3U8).build()
-                p.setMediaItem(item)
-                p.prepare(); p.playWhenReady = true
-            }
+        m3u8Url = null // 切换剧集时先显示加载状态
+        val real = viewModel.getPlayUrl(currentPlayPageUrl)
+        m3u8Url = real
+        real?.let { url ->
+            val item = MediaItem.Builder()
+                .setUri(url)
+                .setMimeType(MimeTypes.APPLICATION_M3U8)
+                .build()
+            exoPlayer.setMediaItem(item)
+            exoPlayer.prepare()
+            exoPlayer.play()
         }
     }
 
@@ -163,22 +189,18 @@ fun PlayerScreen(
 
     /** 更新当前播放位置 */
     fun updatePos() {
-        exoPlayer?.let { p ->
-            positionMs = p.currentPosition.coerceAtLeast(0L)
-            durationMs = p.duration.takeIf { it > 0 } ?: durationMs
-        }
+        positionMs = exoPlayer.currentPosition.coerceAtLeast(0L)
+        durationMs = exoPlayer.duration.takeIf { it > 0 } ?: durationMs
     }
 
     /** 快进或快退指定时长 */
     fun seekBy(delta: Long) {
-        exoPlayer?.let { p ->
-            val d = p.duration.takeIf { it > 0 } ?: return
-            val newPos = (p.currentPosition + delta).coerceIn(0, d)
-            p.seekTo(newPos)
-            updatePos()
-            showSeekHud = true
-            lastSeekTriggerAt = System.currentTimeMillis()
-        }
+        val d = exoPlayer.duration.takeIf { it > 0 } ?: return
+        val newPos = (exoPlayer.currentPosition + delta).coerceIn(0, d)
+        exoPlayer.seekTo(newPos)
+        updatePos()
+        showSeekHud = true
+        lastSeekTriggerAt = System.currentTimeMillis()
     }
 
     // 监听快进触发，延迟隐藏 HUD
@@ -193,7 +215,8 @@ fun PlayerScreen(
 
     /** 切换播放/暂停状态 */
     fun togglePlayPauseInternal() {
-        exoPlayer?.let { p -> if (p.isPlaying) p.pause() else p.play(); updatePos() }
+        if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+        updatePos()
     }
 
     // 定时刷新播放进度
@@ -252,14 +275,14 @@ fun PlayerScreen(
                 val controllerVisible = playerViewRef?.isControllerFullyVisible == true
                 val now = System.currentTimeMillis()
 
-                // 1. 处理返回键：优先关闭自定义 UI 或默认控制界面
+                // 1. 处理返回键：优先关闭自定义 UI
                 if (code == AndroidKeyEvent.KEYCODE_BACK) {
-                    if (showSeekControls || showEpisodeList || controllerVisible) {
+                    if (showSeekControls || showEpisodeList || showSeekHud) {
                         if (isUp) {
                             when {
                                 showSeekControls -> showSeekControls = false
                                 showEpisodeList -> showEpisodeList = false
-                                controllerVisible -> playerViewRef?.hideController()
+                                showSeekHud -> showSeekHud = false
                             }
                         }
                         return@onPreviewKeyEvent true
@@ -267,10 +290,7 @@ fun PlayerScreen(
                     return@onPreviewKeyEvent false
                 }
 
-                // 2. 如果默认控制器正在显示，让它处理除返回键外的其它按键
-                if (controllerVisible) return@onPreviewKeyEvent false
-
-                // 3. 处理其它交互按键，拦截 ACTION_DOWN 以防止 ExoPlayer 默认行为（如 Center 键显示控制条）
+                // 2. 处理其它交互按键，拦截 ACTION_DOWN 以防止 ExoPlayer 默认行为
                 return@onPreviewKeyEvent when (code) {
                     AndroidKeyEvent.KEYCODE_DPAD_UP -> {
                         if (isUp) {
@@ -289,7 +309,10 @@ fun PlayerScreen(
                     AndroidKeyEvent.KEYCODE_DPAD_DOWN -> {
                         if (isUp) {
                             showEpisodeList = false
-                            if (!showSeekControls) showSeekControls = true
+                            if (!showSeekControls) {
+                                showSeekControls = true
+                                lastSeekControlsInteractionAt = now
+                            }
                         }
                         true
                     }
@@ -300,6 +323,7 @@ fun PlayerScreen(
                                 lastEpisodeListInteractionAt = now
                             } else {
                                 seekBy(-UiConstants.SEEK_STEP_MS)
+                                if (showSeekControls) lastSeekControlsInteractionAt = now
                             }
                         }
                         true
@@ -311,6 +335,7 @@ fun PlayerScreen(
                                 lastEpisodeListInteractionAt = now
                             } else {
                                 seekBy(UiConstants.SEEK_STEP_MS)
+                                if (showSeekControls) lastSeekControlsInteractionAt = now
                             }
                         }
                         true
@@ -322,12 +347,17 @@ fun PlayerScreen(
                                 playEpisodeAt(selectedEpisodeIndex)
                             } else {
                                 togglePlayPauseInternal()
+                                showSeekControls = true
+                                lastSeekControlsInteractionAt = now
                             }
                         }
                         true
                     }
                     AndroidKeyEvent.KEYCODE_MENU -> {
-                        if (isUp) playerViewRef?.showController()
+                        if (isUp) {
+                            showSeekControls = !showSeekControls
+                            if (showSeekControls) lastSeekControlsInteractionAt = now
+                        }
                         true
                     }
                     AndroidKeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { if (isUp) togglePlayPauseInternal(); true }
@@ -338,22 +368,12 @@ fun PlayerScreen(
             }
     ) {
         // 播放器视图
-        m3u8Url?.let { realUrl ->
-            val exo = remember(context, realUrl) {
-                ExoPlayer.Builder(context).build().apply {
-                    val mediaItem = MediaItem.Builder().setUri(realUrl).setMimeType(MimeTypes.APPLICATION_M3U8).build()
-                    setMediaItem(mediaItem); prepare(); playWhenReady = true
-                }
-            }
-            exoPlayer = exo
-            DisposableEffect(Unit) { onDispose { exo.release() } }
+        m3u8Url?.let { _ ->
             AndroidView(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
-                        player = exo
-                        useController = true
-                        setControllerAutoShow(false)
-                        setControllerShowTimeoutMs(controllerAutoHideMillis)
+                        player = exoPlayer
+                        useController = false // 完全使用定制 UI
                         keepScreenOn = true
                         layoutParams = FrameLayout.LayoutParams(
                             FrameLayout.LayoutParams.MATCH_PARENT,
@@ -362,15 +382,12 @@ fun PlayerScreen(
                         isFocusable = false
                         isFocusableInTouchMode = false
                         playerViewRef = this
-                        hideController()
                     }
                 },
                 update = { pv ->
                     playerViewRef = pv
-                    if (pv.player !== exo) pv.player = exo
-                    pv.useController = true
-                    pv.controllerAutoShow = false
-                    pv.setControllerShowTimeoutMs(controllerAutoHideMillis)
+                    if (pv.player !== exoPlayer) pv.player = exoPlayer
+                    pv.useController = false
                 },
                 modifier = Modifier.fillMaxSize()
             )
@@ -429,6 +446,7 @@ fun PlayerScreen(
         PlayerSeekControls(
             positionMs = positionMs,
             durationMs = durationMs,
+            isPlaying = exoPlayer.isPlaying,
             visible = showSeekControls,
             focused = seekControlsFocused,
             focusRequester = seekControlsFocusRequester,
