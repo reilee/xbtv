@@ -1,5 +1,10 @@
 # XiaoBaoTV App
 
+## Apple TV 版本
+
+原生 SwiftUI + AVKit 的 tvOS 重写位于 [`tvOS/`](tvOS/README.md)。
+打开 `tvOS/XBTV.xcodeproj` 即可构建，支持 tvOS 18 及以上。Android 工程继续保留。
+
 一个使用 Jetpack Compose 构建的简易视频浏览与播放示例应用。
 
 ## 主要特性

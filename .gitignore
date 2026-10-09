@@ -8,3 +8,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Apple TV
+**/.build/
+**/DerivedData/
+**/xcuserdata/
+*.xcuserstate

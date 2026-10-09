@@ -1,0 +1,52 @@
+name: XBTV
+options:
+  bundleIdPrefix: com.reilee
+  developmentLanguage: zh-Hans
+  knownRegions: [zh-Hans, en]
+  deploymentTarget:
+    tvOS: "18.0"
+packages:
+  XBTVCatalog:
+    path: XBTV/Core
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  XBTV:
+    type: application
+    platform: tvOS
+    sources:
+      - XBTV/App
+      - XBTV/Resources
+    dependencies:
+      - package: XBTVCatalog
+        product: XBTVCatalog
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.reilee.xbtv.appletv
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: 小宝影院
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.entertainment
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: App Icon & Top Shelf Image
+    info:
+      path: XBTV/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: 小宝影院
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoadsForMedia: true
+schemes:
+  XBTV:
+    build:
+      targets:
+        XBTV: all
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -1,0 +1,378 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		05166E9C30ACD7DE7B840F99 /* DetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801FE216D85429F5E3E187ED /* DetailView.swift */; };
+		06850E8ECDD283184506AA77 /* PlaybackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9219E92EC10C73927FE42B /* PlaybackView.swift */; };
+		970945C8C178A786B5AFC80A /* BrowseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74DB9769E1D75F4DDA8CF3F6 /* BrowseView.swift */; };
+		B988E1BFCDE7E3167D7CADF7 /* XBTVApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D37B604FAE233600A15777 /* XBTVApp.swift */; };
+		E25A42393F26B16445CD72EE /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = F49E4E994A8858DF7BA16A4D /* Components.swift */; };
+		F928DE4EEAC67DAE48DAAE89 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0C55A2D5A9B06064EC265F1F /* Assets.xcassets */; };
+		FDD1E0DD02F09965BB4FFE33 /* XBTVCatalog in Frameworks */ = {isa = PBXBuildFile; productRef = C10459253E30E30291776FC7 /* XBTVCatalog */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0C55A2D5A9B06064EC265F1F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3350A614D754F40BC19F334C /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = XBTV/Core; sourceTree = SOURCE_ROOT; };
+		49F6386E118DDC1432A3DE8E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		67DA26F548F189F8ADED43A3 /* XBTV.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = XBTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		74DB9769E1D75F4DDA8CF3F6 /* BrowseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowseView.swift; sourceTree = "<group>"; };
+		801FE216D85429F5E3E187ED /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailView.swift; sourceTree = "<group>"; };
+		A0D37B604FAE233600A15777 /* XBTVApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XBTVApp.swift; sourceTree = "<group>"; };
+		AA9219E92EC10C73927FE42B /* PlaybackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackView.swift; sourceTree = "<group>"; };
+		F49E4E994A8858DF7BA16A4D /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		63EDD7D62C23126FD95570D7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FDD1E0DD02F09965BB4FFE33 /* XBTVCatalog in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2496BE5A675F85495FEEAE5D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				67DA26F548F189F8ADED43A3 /* XBTV.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3AE4C8DF2A9050C601C84B2F = {
+			isa = PBXGroup;
+			children = (
+				A7668B85888B839CF11FBD3F /* App */,
+				5F48FA94579DEA753AA7C765 /* Packages */,
+				EC708A92429511C0E2305B81 /* Resources */,
+				2496BE5A675F85495FEEAE5D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5F48FA94579DEA753AA7C765 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				3350A614D754F40BC19F334C /* Core */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		A7668B85888B839CF11FBD3F /* App */ = {
+			isa = PBXGroup;
+			children = (
+				74DB9769E1D75F4DDA8CF3F6 /* BrowseView.swift */,
+				F49E4E994A8858DF7BA16A4D /* Components.swift */,
+				801FE216D85429F5E3E187ED /* DetailView.swift */,
+				AA9219E92EC10C73927FE42B /* PlaybackView.swift */,
+				A0D37B604FAE233600A15777 /* XBTVApp.swift */,
+			);
+			name = App;
+			path = XBTV/App;
+			sourceTree = "<group>";
+		};
+		EC708A92429511C0E2305B81 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				0C55A2D5A9B06064EC265F1F /* Assets.xcassets */,
+				49F6386E118DDC1432A3DE8E /* Info.plist */,
+			);
+			name = Resources;
+			path = XBTV/Resources;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		861C1D6230FB6CD0D66F69DB /* XBTV */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 54E7873A3F8D8F2E397E539F /* Build configuration list for PBXNativeTarget "XBTV" */;
+			buildPhases = (
+				C6B22DB262F8725D596DFEBA /* Sources */,
+				1F9A025AD30ECECC19EB3FEE /* Resources */,
+				63EDD7D62C23126FD95570D7 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = XBTV;
+			packageProductDependencies = (
+				C10459253E30E30291776FC7 /* XBTVCatalog */,
+			);
+			productName = XBTV;
+			productReference = 67DA26F548F189F8ADED43A3 /* XBTV.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		502666F63249A905C1F9D3B5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 1B03E8F9A12678CC57F0024E /* Build configuration list for PBXProject "XBTV" */;
+			developmentRegion = "zh-Hans";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = 3AE4C8DF2A9050C601C84B2F;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				156DC341C5FBE0AB36ACF305 /* XCLocalSwiftPackageReference "XBTV/Core" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 2496BE5A675F85495FEEAE5D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				861C1D6230FB6CD0D66F69DB /* XBTV */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1F9A025AD30ECECC19EB3FEE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F928DE4EEAC67DAE48DAAE89 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C6B22DB262F8725D596DFEBA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				970945C8C178A786B5AFC80A /* BrowseView.swift in Sources */,
+				E25A42393F26B16445CD72EE /* Components.swift in Sources */,
+				05166E9C30ACD7DE7B840F99 /* DetailView.swift in Sources */,
+				06850E8ECDD283184506AA77 /* PlaybackView.swift in Sources */,
+				B988E1BFCDE7E3167D7CADF7 /* XBTVApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		10FCE6675526B45213CFD86D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+			};
+			name = Release;
+		};
+		231C1383E17BAC1379506D0F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+			};
+			name = Debug;
+		};
+		491C8380D267B5837E0DC228 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = XBTV/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "小宝影院";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.reilee.xbtv.appletv;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+			};
+			name = Release;
+		};
+		D6F27853D8521D401BF7AA58 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = XBTV/Resources/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "小宝影院";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.reilee.xbtv.appletv;
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1B03E8F9A12678CC57F0024E /* Build configuration list for PBXProject "XBTV" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				231C1383E17BAC1379506D0F /* Debug */,
+				10FCE6675526B45213CFD86D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		54E7873A3F8D8F2E397E539F /* Build configuration list for PBXNativeTarget "XBTV" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D6F27853D8521D401BF7AA58 /* Debug */,
+				491C8380D267B5837E0DC228 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		156DC341C5FBE0AB36ACF305 /* XCLocalSwiftPackageReference "XBTV/Core" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = XBTV/Core;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C10459253E30E30291776FC7 /* XBTVCatalog */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = XBTVCatalog;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 502666F63249A905C1F9D3B5 /* Project object */;
+}
