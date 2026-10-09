@@ -15,5 +15,6 @@
 尝试获取 tvOS 18.5 arm64 运行时：当前 Xcode 下载服务不提供此版本。
 没有修改系统目录权限。可在 Xcode Settings → Components 安装可用的 tvOS 运行时后进行 UI 验收。
 
-App 未签名、未上传 TestFlight/App Store，也未推送远程仓库。
+此记录描述首次本地重写验收。App 未签名、未上传 TestFlight/App Store；
+后续 CI 配置及云端发布状态见 XCODE_CLOUD.md。
 运行命令与真机验收清单见 README.md。

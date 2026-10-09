@@ -1,0 +1,10 @@
+XiaoBaoTV for Apple TV
+
+Please test:
+1. Siri Remote focus across tabs, categories, posters, sources and episodes; focus after returning from playback.
+2. Search, details, pagination and network retry.
+3. Play/pause, scrubbing, alternate sources and next episode.
+4. Continue watching after leaving playback; episode/time restoration and history removal.
+5. Available subtitles/audio tracks, VoiceOver and returning from standby.
+
+Website/CDN availability may change. If playback fails, try another source and report the title, episode and reproduction steps.

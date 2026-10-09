@@ -18,6 +18,8 @@
 
 /* Begin PBXFileReference section */
 		0C55A2D5A9B06064EC265F1F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1F6E42CF0FC69E83BAD7D150 /* ci_pre_xcodebuild.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_pre_xcodebuild.sh; sourceTree = "<group>"; };
+		2CBAE0145DDDA3105B0D70E9 /* WhatToTest.en-US.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "WhatToTest.en-US.txt"; sourceTree = "<group>"; };
 		3350A614D754F40BC19F334C /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = XBTV/Core; sourceTree = SOURCE_ROOT; };
 		49F6386E118DDC1432A3DE8E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		67DA26F548F189F8ADED43A3 /* XBTV.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = XBTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -25,6 +27,8 @@
 		801FE216D85429F5E3E187ED /* DetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailView.swift; sourceTree = "<group>"; };
 		A0D37B604FAE233600A15777 /* XBTVApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XBTVApp.swift; sourceTree = "<group>"; };
 		AA9219E92EC10C73927FE42B /* PlaybackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackView.swift; sourceTree = "<group>"; };
+		B1FED8DA23A89B374FC8C51E /* ci_post_clone.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = ci_post_clone.sh; sourceTree = "<group>"; };
+		E787C7ED880768635C41E1CE /* WhatToTest.zh-Hans.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "WhatToTest.zh-Hans.txt"; sourceTree = "<group>"; };
 		F49E4E994A8858DF7BA16A4D /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -52,8 +56,10 @@
 			isa = PBXGroup;
 			children = (
 				A7668B85888B839CF11FBD3F /* App */,
+				DDE3E6B01D2016898E3F9398 /* ci_scripts */,
 				5F48FA94579DEA753AA7C765 /* Packages */,
 				EC708A92429511C0E2305B81 /* Resources */,
+				DD308BBDF6C56CBD5DFF39DF /* TestFlight */,
 				2496BE5A675F85495FEEAE5D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -77,6 +83,24 @@
 			);
 			name = App;
 			path = XBTV/App;
+			sourceTree = "<group>";
+		};
+		DD308BBDF6C56CBD5DFF39DF /* TestFlight */ = {
+			isa = PBXGroup;
+			children = (
+				2CBAE0145DDDA3105B0D70E9 /* WhatToTest.en-US.txt */,
+				E787C7ED880768635C41E1CE /* WhatToTest.zh-Hans.txt */,
+			);
+			path = TestFlight;
+			sourceTree = "<group>";
+		};
+		DDE3E6B01D2016898E3F9398 /* ci_scripts */ = {
+			isa = PBXGroup;
+			children = (
+				B1FED8DA23A89B374FC8C51E /* ci_post_clone.sh */,
+				1F6E42CF0FC69E83BAD7D150 /* ci_pre_xcodebuild.sh */,
+			);
+			path = ci_scripts;
 			sourceTree = "<group>";
 		};
 		EC708A92429511C0E2305B81 /* Resources */ = {
@@ -121,6 +145,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					861C1D6230FB6CD0D66F69DB = {
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 1B03E8F9A12678CC57F0024E /* Build configuration list for PBXProject "XBTV" */;
@@ -205,6 +232,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -228,6 +256,7 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
 				TVOS_DEPLOYMENT_TARGET = 18.0;
+				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Release;
 		};
@@ -264,6 +293,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
@@ -294,6 +324,7 @@
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
 				TVOS_DEPLOYMENT_TARGET = 18.0;
+				VERSIONING_SYSTEM = "apple-generic";
 			};
 			name = Debug;
 		};

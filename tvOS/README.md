@@ -29,6 +29,11 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 实时检查需要网站/CDN可用，仅拉取清单，不代表 AVPlayer 解码或真机播放通过。
 
+## 持续集成与 TestFlight
+
+Xcode Cloud 构建脚本、自动构建号和中英文测试说明已配置。
+首次连接和工作流参数见 [XCODE_CLOUD.md](XCODE_CLOUD.md)。
+
 ## 功能与操作
 
 - 顶部原生标签：浏览、搜索、最近观看、设置。

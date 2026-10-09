@@ -14,6 +14,8 @@ settings:
     SWIFT_STRICT_CONCURRENCY: complete
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
+    VERSIONING_SYSTEM: apple-generic
+    CODE_SIGN_STYLE: Automatic
 targets:
   XBTV:
     type: application
@@ -21,6 +23,10 @@ targets:
     sources:
       - XBTV/App
       - XBTV/Resources
+      - path: ci_scripts
+        buildPhase: none
+      - path: TestFlight
+        buildPhase: none
     dependencies:
       - package: XBTVCatalog
         product: XBTVCatalog
