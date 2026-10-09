@@ -11,8 +11,19 @@
 - 工程、脚本和测试说明均已包含在仓库；云端不需要 XcodeGen、Python 或独立上传 API Key。
 - 公共 Swift Package 依赖通过 SPM 拉取；锁文件在仓库中。
 
-这些文件准备好构建，但不会自行创建或启用 Apple 服务器上的 workflow。
-首次连接须在 Xcode 中完成，之后可在 App Store Connect 管理。
+## 已启用的 Apple 端配置（2026-10-09）
+
+- App Store Connect：XBTV，Apple tvOS，App ID `6820969433`。
+- Xcode Cloud 已连接 `reilee/xbtv`；GitHub 使用指定仓库权限。
+- 活跃工作流：`XBTV · TestFlight`，限制编辑，最新正式 Xcode/macOS。
+- `main` 分支的 `tvOS` 目录变更触发；支持手动启动，自动取消过期构建。
+- 动作：Archive / tvOS / XBTV；Distribution Preparation：App Store Connect。
+- 后续动作：TestFlight Internal Testing / Archive - tvOS → `XBTV Internal`。
+- 内部组已加入本人；组级自动分发未启用，Cloud 分发由工作流后续动作负责。
+- 自动生成的 `Internal TestFlight Build` 模板已停用。
+- 已启动首次 main 构建；构建成功、Apple 处理和 TestFlight 可用性仍需分别确认。
+
+工程内 `xcshareddata/xcodecloud/manifest.json` 保存产品关联；服务器工作流设置通过 Xcode 或 App Store Connect 管理。
 
 ## Apple 端工作流设置
 
@@ -24,7 +35,7 @@
 6. Environment：最新正式版 Xcode（支持 Swift 6 / tvOS 18，最低 Xcode 16），Clean 开启。
 7. Start Conditions：Branch Changes → `main`，只匹配 `tvOS/` 下的变更；不配置定时触发。
 8. Actions：Archive → tvOS → scheme `XBTV` → Release。
-   Deployment Preparation 选 `TestFlight and App Store`，保留未来外部测试的可能性。
+   Deployment Preparation 选 `App Store Connect`（旧版名称为 `TestFlight and App Store`），保留未来外部测试的可能性。
 9. 在 TestFlight 创建内部组 `XBTV Internal`，将本人/现有内部测试者加入该组。
 10. Post-Actions：TestFlight Internal Testing → tvOS → 指向 Archive 产物 → `XBTV Internal`。
     必须实际选择测试组后保存，不能只开启组的“自动分发”选项。
