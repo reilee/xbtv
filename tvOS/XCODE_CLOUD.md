@@ -3,7 +3,7 @@
 ## 仓库中已配置
 
 - 工程：`tvOS/XBTV.xcodeproj`，共享 scheme：`XBTV`，Archive：Release / tvOS。
-- Bundle ID：`com.reilee.xbtv.appletv`；自动签名。首次设置时需选择实际 Apple Developer 团队。
+- Bundle ID：`com.reilee.xbtv.appletv`；自动签名；已配置 Rei Lee 开发团队，并同步到 `project.yml`。
 - `ci_scripts/ci_post_clone.sh`：运行 Core 包的全部离线 XCTest，失败则停止构建。
 - `ci_scripts/ci_pre_xcodebuild.sh`：用 `CI_BUILD_NUMBER` 设置 numeric CFBundleVersion，
   使用 `CI_COMMIT` 写入 GitCommit；marketing version 保持 `1.0.0`。
@@ -17,7 +17,7 @@
 ## Apple 端工作流设置
 
 1. 在 Xcode 中打开 `tvOS/XBTV.xcodeproj`，为 XBTV target 选择开发团队，保留自动签名。
-2. Product → Xcode Cloud → Create Workflow。选择 XBTV 产品与同一开发团队。
+2. Integrate → Xcode Cloud → Create Workflow（旧版 Xcode 位于 Product 菜单）。选择 XBTV 产品与同一开发团队。
 3. 将 Xcode Cloud 连接到 `reilee/xbtv`。如果需要新授权，只授予该仓库访问权限。
 4. 创建或确认 Bundle ID 匹配的 App Store Connect 记录（平台 Apple TV / tvOS）。
 5. 工作流名称：`XBTV · TestFlight`，Restrict Editing 开启。

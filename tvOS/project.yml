@@ -16,6 +16,7 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     VERSIONING_SYSTEM: apple-generic
     CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: QRKQW6M6H7
 targets:
   XBTV:
     type: application
