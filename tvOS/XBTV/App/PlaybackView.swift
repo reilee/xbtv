@@ -187,6 +187,7 @@ struct NativePlayer: UIViewControllerRepresentable {
         } else {
             let picker = UIHostingController(rootView: pickerView)
             picker.title = "选集"
+            picker.preferredContentSize = CGSize(width: 1920, height: 360)
             picker.view.backgroundColor = .clear
             context.coordinator.picker = picker
             // AVKit owns the upward remote gesture and the overlay Back behavior.
@@ -212,6 +213,9 @@ struct NativePlayer: UIViewControllerRepresentable {
                 navigation.append(UIAction(title: "下一集", image: UIImage(systemName: "forward.end.fill")) { _ in selectEpisode(next) })
             }
         }
+        navigation.append(UIMenu(title: "选集", image: UIImage(systemName: "list.bullet"), children: episodes.map { value in
+            UIAction(title: value.title, state: value.id == selectedEpisode.id ? .on : .off) { _ in selectEpisode(value) }
+        }))
         controller.transportBarCustomMenuItems = navigation
     }
     static func dismantleUIViewController(_ controller: AVPlayerViewController, coordinator: Coordinator) {
@@ -236,7 +240,7 @@ struct PlaybackEpisodePicker: View {
                 Text("选集").font(.title2).bold()
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal) {
-                        LazyHStack(spacing: 24) {
+                        HStack(spacing: 24) {
                             ForEach(episodes) { episode in
                                 Button { select(episode) } label: {
                                     VStack(spacing: 8) {
@@ -253,7 +257,11 @@ struct PlaybackEpisodePicker: View {
                             }
                         }.padding(.vertical, 24).padding(.horizontal, 12)
                     }
-                    .onAppear {
+                    .frame(height: 180)
+                    .task(id: selectedEpisode.id) {
+                        // Wait until the overlay has laid out its horizontal scroll content.
+                        await Task.yield()
+                        guard !Task.isCancelled else { return }
                         proxy.scrollTo(selectedEpisode.id, anchor: .center)
                         focusedID = selectedEpisode.id
                     }
@@ -261,6 +269,7 @@ struct PlaybackEpisodePicker: View {
             }
             .padding(48)
             .background(.regularMaterial, in: .rect(cornerRadius: 24))
-        }.padding(48)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .padding(48)
     }
 }
