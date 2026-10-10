@@ -80,6 +80,7 @@ struct DetailView: View {
                                         Text(episode.title).font(.system(size: 27, weight: .medium))
                                             .lineLimit(2).minimumScaleFactor(0.85)
                                             .frame(maxWidth: .infinity, minHeight: 64)
+                                            .padding(.horizontal, 20).padding(.vertical, 12)
                                     }
                                         .frame(maxWidth: .infinity).buttonStyle(.bordered)
                                         .focused($focusedEpisode, equals: episode.id)

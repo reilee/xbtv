@@ -288,14 +288,14 @@ final class PlaybackEpisodePickerController: UIViewController, UICollectionViewD
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "选集"
-        preferredContentSize = CGSize(width: 1920, height: 360)
+        preferredContentSize = CGSize(width: 1920, height: 400)
         view.backgroundColor = .clear
         let panel = UIVisualEffectView(effect: UIBlurEffect(style: .regular))
         panel.layer.cornerRadius = 24; panel.clipsToBounds = true
         let heading = UILabel()
         heading.text = "选集"; heading.font = .preferredFont(forTextStyle: .title2)
         layout.scrollDirection = .horizontal
-        layout.itemSize = CGSize(width: 220, height: 112)
+        layout.itemSize = CGSize(width: 260, height: 144)
         layout.minimumLineSpacing = 24
         collection.backgroundColor = .clear
         collection.dataSource = self; collection.delegate = self
@@ -308,7 +308,7 @@ final class PlaybackEpisodePickerController: UIViewController, UICollectionViewD
             panel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 48),
             panel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -48),
             panel.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -48),
-            panel.heightAnchor.constraint(equalToConstant: 280),
+            panel.heightAnchor.constraint(equalToConstant: 320),
             heading.leadingAnchor.constraint(equalTo: panel.contentView.leadingAnchor, constant: 48),
             heading.topAnchor.constraint(equalTo: panel.contentView.topAnchor, constant: 24),
             collection.leadingAnchor.constraint(equalTo: panel.contentView.leadingAnchor),
@@ -378,14 +378,18 @@ final class PlaybackEpisodeCell: UICollectionViewCell {
         titleLabel.font = .systemFont(ofSize: 27, weight: .medium)
         titleLabel.numberOfLines = 2; titleLabel.textAlignment = .center
         titleLabel.adjustsFontSizeToFitWidth = true; titleLabel.minimumScaleFactor = 0.85
+        titleLabel.lineBreakMode = .byTruncatingTail
         statusLabel.font = .systemFont(ofSize: 23); statusLabel.textAlignment = .center
+        statusLabel.setContentCompressionResistancePriority(.required, for: .vertical)
         let stack = UIStackView(arrangedSubviews: [titleLabel, statusLabel])
         stack.axis = .vertical; stack.spacing = 8
         contentView.addSubview(stack); stack.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
-            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
-            stack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -24),
+            stack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            stack.topAnchor.constraint(greaterThanOrEqualTo: contentView.topAnchor, constant: 20),
+            stack.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -20)
         ])
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
