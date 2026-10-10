@@ -96,6 +96,8 @@ struct PlaybackView: View {
     @State private var episode: Episode
     @State private var resumeSeconds: Double
     @State private var reload = 0
+    @State private var nextEpisodeCountdown: Int?
+    @State private var autoAdvanceCancelled = false
     init(request: PlaybackRequest, client: CatalogClient) {
         self.request = request; self.client = client
         // Intentional one-time seeds: each full-screen presentation is a new playback request.
@@ -121,17 +123,37 @@ struct PlaybackView: View {
             if let error = session.error {
                 VStack(spacing: 20) {
                     MessageView(title: "播放失败", message: error) { reload += 1 }
-                    Button("返回选集") { dismiss() }
+                    Button("返回选集") { cancelAutoAdvance(); dismiss() }
                 }.padding(48).background(.regularMaterial)
                     .onExitCommand { dismiss() }
             } else if session.ended {
                 VStack(spacing: 24) {
                     Text("本集播放结束").font(.title2)
-                    if let nextEpisode { Button("播放下一集 · \(nextEpisode.title)") { switchEpisode(nextEpisode) } }
-                    Button("重新播放") { resumeSeconds = 0; reload += 1 }
-                    Button("返回选集") { dismiss() }
+                    if let nextEpisode {
+                        if let nextEpisodeCountdown {
+                            Text("\(nextEpisodeCountdown) 秒后播放 · \(nextEpisode.title)")
+                                .font(.headline).monospacedDigit()
+                            Button("取消自动播放") { cancelAutoAdvance() }
+                        }
+                        Button("立即播放下一集 · \(nextEpisode.title)") { switchEpisode(nextEpisode) }
+                    }
+                    Button("重新播放") { cancelAutoAdvance(); resumeSeconds = 0; reload += 1 }
+                    Button("返回选集") { cancelAutoAdvance(); dismiss() }
                 }.padding(56).background(.regularMaterial, in: .rect(cornerRadius: 24))
-                    .onExitCommand { dismiss() }
+                    .onExitCommand { cancelAutoAdvance(); dismiss() }
+                    .task(id: episode.id) {
+                        guard let next = nextEpisode, scenePhase == .active else { return }
+                        autoAdvanceCancelled = false
+                        nextEpisodeCountdown = 5
+                        for remaining in stride(from: 4, through: 0, by: -1) {
+                            do { try await Task.sleep(for: .seconds(1)) }
+                            catch { return }
+                            guard !Task.isCancelled, !autoAdvanceCancelled,
+                                  session.ended, scenePhase == .active else { return }
+                            if remaining == 0 { switchEpisode(next) }
+                            else { nextEpisodeCountdown = remaining }
+                        }
+                    }
             }
         }
         .task(id: "\(episode.id)-\(reload)") {
@@ -141,12 +163,18 @@ struct PlaybackView: View {
                                            lineID: request.line.id, lineTitle: request.line.title, seconds: seconds, duration: duration))
             }
         }
-        .onDisappear { session.stop() }
+        .onDisappear { cancelAutoAdvance(); session.stop() }
         .onChange(of: scenePhase) { _, phase in
-            if phase != .active { session.save(); session.player.pause() }
+            if phase != .active { cancelAutoAdvance(); session.save(); session.player.pause() }
         }
     }
-    private func switchEpisode(_ next: Episode) { session.stop(); resumeSeconds = 0; episode = next }
+    private func cancelAutoAdvance() {
+        autoAdvanceCancelled = true
+        nextEpisodeCountdown = nil
+    }
+    private func switchEpisode(_ next: Episode) {
+        cancelAutoAdvance(); session.stop(); resumeSeconds = 0; episode = next
+    }
 }
 
 /// AVKit owns Siri Remote transport, scrubbing, subtitles, audio tracks and AirPlay.
