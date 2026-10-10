@@ -1,4 +1,5 @@
 import SwiftUI
+import Observation
 import XBTVCatalog
 
 struct BrowseView: View {
@@ -104,47 +105,86 @@ struct BrowseView: View {
     }
 }
 
-struct SearchView: View {
+/// Keep UIKit's remote keyboard session independent of SwiftUI result rendering.
+struct SearchView: UIViewControllerRepresentable {
     let client: CatalogClient
-    @State private var query = ""
-    @State private var submittedQuery = ""
+    @Environment(LibraryStore.self) private var library
+
+    @MainActor @Observable final class Submission {
+        var query = ""
+        var revision = 0
+        func submit(_ text: String) {
+            query = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            revision += 1
+        }
+    }
+    final class Coordinator: NSObject, UISearchBarDelegate, UISearchResultsUpdating {
+        let submission = Submission()
+        func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+            submission.submit(searchBar.text ?? "")
+        }
+        func updateSearchResults(for searchController: UISearchController) {
+            // Editing, including marked Chinese text, stays entirely inside UIKit.
+            // Do not replace the results controller or write text back to the search bar.
+        }
+    }
+    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeUIViewController(context: Context) -> UISearchContainerViewController {
+        let results = UIHostingController(rootView:
+            SearchResultsView(client: client, submission: context.coordinator.submission)
+                .environment(library).preferredColorScheme(.dark).tint(.white))
+        let search = UISearchController(searchResultsController: results)
+        search.searchBar.placeholder = "影片名称"
+        search.searchBar.searchBarStyle = .minimal
+        search.searchBar.delegate = context.coordinator
+        search.searchResultsUpdater = context.coordinator
+        return UISearchContainerViewController(searchController: search)
+    }
+    func updateUIViewController(_ controller: UISearchContainerViewController, context: Context) {
+        // The native controller and its text input remain stable for the whole tab lifetime.
+    }
+    static func dismantleUIViewController(_ controller: UISearchContainerViewController, coordinator: Coordinator) {
+        controller.searchController.searchBar.delegate = nil
+        controller.searchController.searchResultsUpdater = nil
+    }
+}
+
+private struct SearchResultsView: View {
+    let client: CatalogClient
+    let submission: SearchView.Submission
     @State private var videos: [Video] = []
     @State private var isLoading = false
     @State private var error: String?
-    @State private var reload = 0
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 36) {
-                if submittedQuery.isEmpty {
-                    MessageView(title: "找一部想看的影片", message: "输入影片名称或关键词，完成后按搜索。中文输入可使用 iPhone 的 Apple TV 键盘。", symbol: "magnifyingglass")
-                } else if isLoading {
-                    ProgressView("正在搜索…").frame(maxWidth: .infinity, minHeight: 360)
-                } else if let error {
-                    MessageView(title: "搜索失败", message: error) { reload += 1 }
-                } else if videos.isEmpty {
-                    MessageView(title: "没有找到相关影片", message: "试试其他名称或更短的关键词。", symbol: "magnifyingglass")
-                } else {
-                    Text("搜索结果").font(.title2).bold()
-                    VideoGrid(videos: videos, client: client)
-                }
-            }.padding(64)
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 36) {
+                    if submission.query.isEmpty {
+                        MessageView(title: "找一部想看的影片", message: "输入影片名称或关键词，完成后按搜索。中文输入可使用 iPhone 的 Apple TV 键盘。", symbol: "magnifyingglass")
+                    } else if isLoading {
+                        ProgressView("正在搜索…").frame(maxWidth: .infinity, minHeight: 360)
+                    } else if let error {
+                        MessageView(title: "搜索失败", message: error) { submission.revision += 1 }
+                    } else if videos.isEmpty {
+                        MessageView(title: "没有找到相关影片", message: "试试其他名称或更短的关键词。", symbol: "magnifyingglass")
+                    } else {
+                        Text("搜索结果").font(.title2).bold()
+                        VideoGrid(videos: videos, client: client)
+                    }
+                }.padding(64)
+            }
+            .navigationDestination(for: Video.self) { video in DetailView(video: video, client: client) }
+            .task(id: "\(submission.query)-\(submission.revision)") { await search() }
         }
-        .searchable(text: $query, prompt: "影片名称")
-        .navigationDestination(for: Video.self) { video in DetailView(video: video, client: client) }
-        .onSubmit(of: .search) {
-            let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
-            if submittedQuery == value { reload += 1 } else { submittedQuery = value }
-        }
-        .task(id: "\(submittedQuery)-\(reload)") { await search() }
     }
     @MainActor private func search() async {
-        let keyword = submittedQuery
+        let keyword = submission.query
         guard !keyword.isEmpty else { videos = []; error = nil; isLoading = false; return }
-        error = nil
-        isLoading = true
+        error = nil; isLoading = true
         do {
             let result = try await client.search(keyword)
-            try Task.checkCancellation(); videos = result.videos; isLoading = false
+            try Task.checkCancellation()
+            videos = result.videos; isLoading = false
         } catch {
             guard !Task.isCancelled else { return }
             self.error = error.localizedDescription; isLoading = false
