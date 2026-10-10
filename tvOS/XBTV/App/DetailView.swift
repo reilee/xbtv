@@ -74,9 +74,13 @@ struct DetailView: View {
                         }.focusSection()
                         if let line = selectedLine {
                             Text("剧集 · \(line.episodes.count) 集").font(.title2).bold()
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 24)], spacing: 30) {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 24)], spacing: 30) {
                                 ForEach(line.episodes) { episode in
-                                    Button(episode.title) { play(detail, line: line, episode: episode, seconds: 0) }
+                                    Button { play(detail, line: line, episode: episode, seconds: 0) } label: {
+                                        Text(episode.title).font(.system(size: 27, weight: .medium))
+                                            .lineLimit(2).minimumScaleFactor(0.85)
+                                            .frame(maxWidth: .infinity, minHeight: 64)
+                                    }
                                         .frame(maxWidth: .infinity).buttonStyle(.bordered)
                                         .focused($focusedEpisode, equals: episode.id)
                                         .accessibilityHint("播放\(line.title)，\(episode.title)")

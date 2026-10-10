@@ -90,7 +90,7 @@ struct SearchView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 36) {
                 if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    MessageView(title: "找一部想看的影片", message: "输入影片名称或关键词", symbol: "magnifyingglass")
+                    MessageView(title: "找一部想看的影片", message: "输入影片名称或关键词。中文输入可使用 iPhone 的 Apple TV 键盘；中文听写取决于系统支持。", symbol: "magnifyingglass")
                 } else if isLoading {
                     ProgressView("正在搜索…").frame(maxWidth: .infinity, minHeight: 360)
                 } else if let error {
@@ -134,7 +134,7 @@ struct HistoryView: View {
                 } else if library.history.records.isEmpty {
                     MessageView(title: "从一部好戏开始", message: "播放过的影片会出现在这里，并记住集数与进度。", symbol: "clock")
                 } else {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 36)], spacing: 44) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 290), spacing: 36)], spacing: 44) {
                         ForEach(library.history.records) { record in
                             NavigationLink(value: record.video) {
                                 VideoCard(video: record.video, subtitle: "\(record.episode.title) · \(Int(record.resumeSeconds / 60)) 分钟")

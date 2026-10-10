@@ -2,8 +2,8 @@ XiaoBaoTV for Apple TV
 
 Please test:
 1. Siri Remote focus across tabs, categories, posters, sources and episodes; focus after returning from playback.
-2. Search, details, pagination and network retry.
-3. Play/pause, scrubbing, alternate sources and next episode.
+2. Two-line poster titles and long episode labels; search, details, pagination and network retry. Chinese dictation depends on tvOS language support; iPhone keyboard input is available.
+3. Back hides visible playback controls before exiting. With controls hidden, press/swipe Up to open the episode picker. Switching stays in playback; Back closes only the picker.
 4. Continue watching after leaving playback; episode/time restoration and history removal.
 5. Available subtitles/audio tracks, VoiceOver and returning from standby.
 

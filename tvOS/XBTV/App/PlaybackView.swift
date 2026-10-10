@@ -110,17 +110,21 @@ struct PlaybackView: View {
             Color.black.ignoresSafeArea()
             if session.error == nil && !session.ended {
                 NativePlayer(player: session.player, title: request.detail.video.title, episodeTitle: episode.title,
-                         next: nextEpisode.map { next in { switchEpisode(next) } })
+                         next: nextEpisode.map { next in { switchEpisode(next) } },
+                         episodes: request.line.episodes, selectedEpisode: episode,
+                         selectEpisode: switchEpisode, exit: { dismiss() })
                 .ignoresSafeArea()
             }
             if session.isLoading {
                 ProgressView("正在准备 \(episode.title)…").padding(40).background(.regularMaterial, in: .rect(cornerRadius: 20))
+                    .onExitCommand { dismiss() }
             }
             if let error = session.error {
                 VStack(spacing: 20) {
                     MessageView(title: "播放失败", message: error) { reload += 1 }
                     Button("返回选集") { dismiss() }
                 }.padding(48).background(.regularMaterial)
+                    .onExitCommand { dismiss() }
             } else if session.ended {
                 VStack(spacing: 24) {
                     Text("本集播放结束").font(.title2)
@@ -128,6 +132,7 @@ struct PlaybackView: View {
                     Button("重新播放") { resumeSeconds = 0; reload += 1 }
                     Button("返回选集") { dismiss() }
                 }.padding(56).background(.regularMaterial, in: .rect(cornerRadius: 24))
+                    .onExitCommand { dismiss() }
             }
         }
         .task(id: "\(episode.id)-\(reload)") {
@@ -137,7 +142,6 @@ struct PlaybackView: View {
                                            lineID: request.line.id, lineTitle: request.line.title, seconds: seconds, duration: duration))
             }
         }
-        .onExitCommand { dismiss() }
         .onDisappear { session.stop() }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { session.save(); session.player.pause() }
@@ -152,13 +156,44 @@ struct NativePlayer: UIViewControllerRepresentable {
     let title: String
     let episodeTitle: String
     let next: (() -> Void)?
+    let episodes: [Episode]
+    let selectedEpisode: Episode
+    let selectEpisode: (Episode) -> Void
+    let exit: () -> Void
+
+    final class Coordinator: NSObject, AVPlayerViewControllerDelegate {
+        var exit: () -> Void
+        var picker: UIHostingController<PlaybackEpisodePicker>?
+        init(exit: @escaping () -> Void) { self.exit = exit }
+        func playerViewControllerShouldDismiss(_ playerViewController: AVPlayerViewController) -> Bool {
+            exit()
+            return false // SwiftUI owns the full-screen presentation.
+        }
+    }
+    func makeCoordinator() -> Coordinator { Coordinator(exit: exit) }
     func makeUIViewController(context: Context) -> AVPlayerViewController {
         let controller = AVPlayerViewController()
         controller.player = player; controller.showsPlaybackControls = true
+        controller.delegate = context.coordinator
         return controller
     }
     func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
+        context.coordinator.exit = exit
         if controller.player !== player { controller.player = player }
+        let pickerView = PlaybackEpisodePicker(episodes: episodes, selectedEpisode: selectedEpisode) { [weak controller] value in
+            controller?.customOverlayViewController?.dismiss(animated: true)
+            selectEpisode(value)
+        }
+        if let picker = context.coordinator.picker {
+            picker.rootView = pickerView
+        } else {
+            let picker = UIHostingController(rootView: pickerView)
+            picker.title = "选集"
+            picker.view.backgroundColor = .clear
+            context.coordinator.picker = picker
+            // AVKit owns the upward remote gesture and the overlay Back behavior.
+            controller.customOverlayViewController = picker
+        }
         if let item = player.currentItem {
             let metadata = AVMutableMetadataItem()
             metadata.identifier = .commonIdentifierTitle
@@ -170,7 +205,53 @@ struct NativePlayer: UIViewControllerRepresentable {
             [UIAction(title: "下一集", image: UIImage(systemName: "forward.end.fill")) { _ in action() }]
         } ?? []
     }
-    static func dismantleUIViewController(_ controller: AVPlayerViewController, coordinator: ()) {
+    static func dismantleUIViewController(_ controller: AVPlayerViewController, coordinator: Coordinator) {
+        controller.delegate = nil
+        controller.customOverlayViewController = nil
+        coordinator.picker = nil
         controller.player = nil
+    }
+}
+
+
+/// System-presented slide-up panel; selecting an episode keeps the playback session open.
+struct PlaybackEpisodePicker: View {
+    let episodes: [Episode]
+    let selectedEpisode: Episode
+    let select: (Episode) -> Void
+    @FocusState private var focusedID: String?
+    var body: some View {
+        VStack {
+            Spacer()
+            VStack(alignment: .leading, spacing: 24) {
+                Text("选集").font(.title2).bold()
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal) {
+                        LazyHStack(spacing: 24) {
+                            ForEach(episodes) { episode in
+                                Button { select(episode) } label: {
+                                    VStack(spacing: 8) {
+                                        Text(episode.title).font(.system(size: 27, weight: .medium))
+                                            .lineLimit(2).minimumScaleFactor(0.85)
+                                        Text(episode.id == selectedEpisode.id ? "正在播放" : "播放此集")
+                                            .font(.system(size: 23)).foregroundStyle(.secondary)
+                                    }.frame(width: 220, height: 96)
+                                }
+                                .buttonStyle(.bordered)
+                                .focused($focusedID, equals: episode.id)
+                                .accessibilityAddTraits(episode.id == selectedEpisode.id ? .isSelected : [])
+                                .id(episode.id)
+                            }
+                        }.padding(.vertical, 24).padding(.horizontal, 12)
+                    }
+                    .onAppear {
+                        proxy.scrollTo(selectedEpisode.id, anchor: .center)
+                        focusedID = selectedEpisode.id
+                    }
+                }
+            }
+            .padding(48)
+            .background(.regularMaterial, in: .rect(cornerRadius: 24))
+        }.padding(48)
     }
 }
