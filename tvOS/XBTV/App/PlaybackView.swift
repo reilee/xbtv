@@ -189,8 +189,7 @@ struct NativePlayer: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, AVPlayerViewControllerDelegate {
         var exit: () -> Void
-        var picker: EpisodePickerHostingController?
-        let presentation = EpisodePickerPresentation()
+        var picker: PlaybackEpisodePickerController?
         init(exit: @escaping () -> Void) { self.exit = exit }
         func playerViewControllerShouldDismiss(_ playerViewController: AVPlayerViewController) -> Bool {
             exit()
@@ -207,20 +206,17 @@ struct NativePlayer: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
         context.coordinator.exit = exit
         if controller.player !== player { controller.player = player }
-        let pickerView = PlaybackEpisodePicker(episodes: episodes, selectedEpisode: selectedEpisode, presentation: context.coordinator.presentation) { [weak controller] value in
+        let picker: PlaybackEpisodePickerController
+        if let existing = context.coordinator.picker {
+            picker = existing
+        } else {
+            picker = PlaybackEpisodePickerController()
+            context.coordinator.picker = picker
+            controller.customOverlayViewController = picker
+        }
+        picker.configure(episodes: episodes, selectedID: selectedEpisode.id) { [weak controller] value in
             controller?.customOverlayViewController?.dismiss(animated: true)
             selectEpisode(value)
-        }
-        if let picker = context.coordinator.picker {
-            picker.rootView = pickerView
-        } else {
-            let picker = EpisodePickerHostingController(rootView: pickerView)
-            picker.title = "选集"
-            picker.preferredContentSize = CGSize(width: 1920, height: 360)
-            picker.view.backgroundColor = .clear
-            context.coordinator.picker = picker
-            // AVKit owns the upward remote gesture and the overlay Back behavior.
-            controller.customOverlayViewController = picker
         }
         if let item = player.currentItem {
             let metadata = AVMutableMetadataItem()
@@ -242,12 +238,22 @@ struct NativePlayer: UIViewControllerRepresentable {
                 navigation.append(UIAction(title: "下一集", image: UIImage(systemName: "forward.end.fill")) { _ in selectEpisode(next) })
             }
         }
-        // Native menus do not expose a scroll-to-row API. Put the current episode
-        // first while keeping all other episodes in their original order.
-        let menuEpisodes = [selectedEpisode] + episodes.filter { $0.id != selectedEpisode.id }
-        navigation.append(UIMenu(title: "选集", image: UIImage(systemName: "list.bullet"), options: .singleSelection, children: menuEpisodes.map { value in
-            UIAction(title: value.id == selectedEpisode.id ? "正在播放 · \(value.title)" : value.title, state: value.id == selectedEpisode.id ? .on : .off) { _ in selectEpisode(value) }
-        }))
+        // A native action sheet exposes preferredAction; UIMenu has no public
+        // initial-focus API. Keep the episode order and focus the checked action.
+        navigation.append(UIAction(title: "选集", image: UIImage(systemName: "list.bullet")) { [weak controller] _ in
+            guard let controller else { return }
+            let sheet = UIAlertController(title: "选集", message: nil, preferredStyle: .actionSheet)
+            for value in episodes {
+                let current = value.id == selectedEpisode.id
+                let action = UIAlertAction(title: current ? "✓  \(value.title)" : value.title, style: .default) { _ in
+                    selectEpisode(value)
+                }
+                sheet.addAction(action)
+                if current { sheet.preferredAction = action }
+            }
+            sheet.addAction(UIAlertAction(title: "取消", style: .cancel))
+            controller.present(sheet, animated: true)
+        })
         controller.transportBarCustomMenuItems = navigation
     }
     static func dismantleUIViewController(_ controller: AVPlayerViewController, coordinator: Coordinator) {
@@ -259,64 +265,147 @@ struct NativePlayer: UIViewControllerRepresentable {
 }
 
 
-@MainActor @Observable final class EpisodePickerPresentation {
-    var revision = 0
-}
+/// AVKit keeps this panel alive. Align and request native focus on every appearance.
+final class PlaybackEpisodePickerController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+    private var episodes: [Episode] = []
+    private var selectedID = ""
+    private var select: ((Episode) -> Void)?
+    private var needsAlignment = true
+    private let layout = UICollectionViewFlowLayout()
+    private lazy var collection = UICollectionView(frame: .zero, collectionViewLayout: layout)
 
-final class EpisodePickerHostingController: UIHostingController<PlaybackEpisodePicker> {
+    private var currentIndex: IndexPath? {
+        episodes.firstIndex { $0.id == selectedID }.map { IndexPath(item: $0, section: 0) }
+    }
+    func configure(episodes: [Episode], selectedID: String, select: @escaping (Episode) -> Void) {
+        let changed = self.episodes != episodes || self.selectedID != selectedID
+        self.episodes = episodes; self.selectedID = selectedID; self.select = select
+        if changed {
+            needsAlignment = true
+            if isViewLoaded { collection.reloadData(); view.setNeedsLayout() }
+        }
+    }
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = "选集"
+        preferredContentSize = CGSize(width: 1920, height: 360)
+        view.backgroundColor = .clear
+        let panel = UIVisualEffectView(effect: UIBlurEffect(style: .regular))
+        panel.layer.cornerRadius = 24; panel.clipsToBounds = true
+        let heading = UILabel()
+        heading.text = "选集"; heading.font = .preferredFont(forTextStyle: .title2)
+        layout.scrollDirection = .horizontal
+        layout.itemSize = CGSize(width: 220, height: 112)
+        layout.minimumLineSpacing = 24
+        collection.backgroundColor = .clear
+        collection.dataSource = self; collection.delegate = self
+        collection.remembersLastFocusedIndexPath = false
+        collection.showsHorizontalScrollIndicator = false
+        collection.register(PlaybackEpisodeCell.self, forCellWithReuseIdentifier: "episode")
+        view.addSubview(panel); panel.contentView.addSubview(heading); panel.contentView.addSubview(collection)
+        for child in [panel, heading, collection] { child.translatesAutoresizingMaskIntoConstraints = false }
+        NSLayoutConstraint.activate([
+            panel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 48),
+            panel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -48),
+            panel.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -48),
+            panel.heightAnchor.constraint(equalToConstant: 280),
+            heading.leadingAnchor.constraint(equalTo: panel.contentView.leadingAnchor, constant: 48),
+            heading.topAnchor.constraint(equalTo: panel.contentView.topAnchor, constant: 24),
+            collection.leadingAnchor.constraint(equalTo: panel.contentView.leadingAnchor),
+            collection.trailingAnchor.constraint(equalTo: panel.contentView.trailingAnchor),
+            collection.topAnchor.constraint(equalTo: heading.bottomAnchor, constant: 8),
+            collection.bottomAnchor.constraint(equalTo: panel.contentView.bottomAnchor, constant: -16)
+        ])
+    }
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        needsAlignment = true
+        collection.reloadData()
+        view.setNeedsLayout()
+    }
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        let inset = max(24, (collection.bounds.width - layout.itemSize.width) / 2)
+        if layout.sectionInset.left != inset {
+            layout.sectionInset = UIEdgeInsets(top: 24, left: inset, bottom: 24, right: inset)
+            layout.invalidateLayout()
+        }
+        if needsAlignment, collection.bounds.width > 0, let currentIndex {
+            collection.layoutIfNeeded()
+            collection.scrollToItem(at: currentIndex, at: .centeredHorizontally, animated: false)
+            needsAlignment = false
+        }
+    }
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // AVKit retains this controller between presentations.
-        rootView.presentation.revision += 1
+        view.layoutIfNeeded()
+        if let currentIndex {
+            collection.scrollToItem(at: currentIndex, at: .centeredHorizontally, animated: false)
+            collection.layoutIfNeeded()
+            collection.selectItem(at: currentIndex, animated: false, scrollPosition: [])
+            if let cell = collection.cellForItem(at: currentIndex), let focusSystem = UIFocusSystem(for: cell) {
+                focusSystem.requestFocusUpdate(to: cell)
+                focusSystem.updateFocusIfNeeded()
+            }
+        }
+        setNeedsFocusUpdate(); updateFocusIfNeeded()
+    }
+    override var preferredFocusEnvironments: [UIFocusEnvironment] {
+        if let currentIndex, let cell = collection.cellForItem(at: currentIndex) { return [cell] }
+        return [collection]
+    }
+    func indexPathForPreferredFocusedView(in collectionView: UICollectionView) -> IndexPath? { currentIndex }
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int { episodes.count }
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "episode", for: indexPath) as! PlaybackEpisodeCell
+        let episode = episodes[indexPath.item]
+        cell.configure(title: episode.title, current: episode.id == selectedID)
+        return cell
+    }
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        select?(episodes[indexPath.item])
     }
 }
 
-/// System-presented slide-up panel; selecting an episode keeps the playback session open.
-struct PlaybackEpisodePicker: View {
-    let episodes: [Episode]
-    let selectedEpisode: Episode
-    let presentation: EpisodePickerPresentation
-    let select: (Episode) -> Void
-    @FocusState private var focusedID: String?
-    var body: some View {
-        VStack {
-            Spacer()
-            VStack(alignment: .leading, spacing: 24) {
-                Text("选集").font(.title2).bold()
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal) {
-                        HStack(spacing: 24) {
-                            ForEach(episodes) { episode in
-                                Button { select(episode) } label: {
-                                    VStack(spacing: 8) {
-                                        Text(episode.title).font(.system(size: 27, weight: .medium))
-                                            .lineLimit(2).minimumScaleFactor(0.85)
-                                        Text(episode.id == selectedEpisode.id ? "正在播放" : "播放此集")
-                                            .font(.system(size: 23)).foregroundStyle(.secondary)
-                                    }.frame(width: 220, height: 96)
-                                }
-                                .buttonStyle(.bordered)
-                                .focused($focusedID, equals: episode.id)
-                                .accessibilityAddTraits(episode.id == selectedEpisode.id ? .isSelected : [])
-                                .id(episode.id)
-                            }
-                        }.padding(.vertical, 24).padding(.horizontal, 12)
-                    }
-                    .frame(height: 180)
-                    .defaultFocus($focusedID, selectedEpisode.id)
-                    .task(id: "\(selectedEpisode.id)-\(presentation.revision)") {
-                        // The presentation revision changes after AVKit finishes showing the panel.
-                        focusedID = nil
-                        await Task.yield()
-                        guard !Task.isCancelled else { return }
-                        proxy.scrollTo(selectedEpisode.id, anchor: .center)
-                        focusedID = selectedEpisode.id
-                    }
-                }
-            }
-            .padding(48)
-            .background(.regularMaterial, in: .rect(cornerRadius: 24))
-        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-            .padding(48)
+final class PlaybackEpisodeCell: UICollectionViewCell {
+    private let titleLabel = UILabel()
+    private let statusLabel = UILabel()
+    private var current = false
+    override var canBecomeFocused: Bool { true }
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        contentView.layer.cornerRadius = 16
+        titleLabel.font = .systemFont(ofSize: 27, weight: .medium)
+        titleLabel.numberOfLines = 2; titleLabel.textAlignment = .center
+        titleLabel.adjustsFontSizeToFitWidth = true; titleLabel.minimumScaleFactor = 0.85
+        statusLabel.font = .systemFont(ofSize: 23); statusLabel.textAlignment = .center
+        let stack = UIStackView(arrangedSubviews: [titleLabel, statusLabel])
+        stack.axis = .vertical; stack.spacing = 8
+        contentView.addSubview(stack); stack.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
+            stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -12),
+            stack.centerYAnchor.constraint(equalTo: contentView.centerYAnchor)
+        ])
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    func configure(title: String, current: Bool) {
+        titleLabel.text = title; self.current = current
+        statusLabel.text = current ? "✓ 正在播放" : "播放此集"
+        accessibilityLabel = title; accessibilityValue = current ? "正在播放" : nil
+        accessibilityTraits = current ? [.button, .selected] : .button
+        updateAppearance()
+    }
+    override func didUpdateFocus(in context: UIFocusUpdateContext, with coordinator: UIFocusAnimationCoordinator) {
+        super.didUpdateFocus(in: context, with: coordinator)
+        coordinator.addCoordinatedAnimations({ self.updateAppearance() }, completion: nil)
+    }
+    private func updateAppearance() {
+        contentView.backgroundColor = isFocused ? .white : (current ? UIColor.systemBlue.withAlphaComponent(0.4) : UIColor.white.withAlphaComponent(0.12))
+        contentView.layer.borderWidth = current ? 3 : 0
+        contentView.layer.borderColor = UIColor.systemBlue.cgColor
+        titleLabel.textColor = isFocused ? .black : .white
+        statusLabel.textColor = isFocused ? .darkGray : .lightGray
+        transform = isFocused ? CGAffineTransform(scaleX: 1.06, y: 1.06) : .identity
     }
 }
