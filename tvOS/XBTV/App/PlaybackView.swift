@@ -189,7 +189,8 @@ struct NativePlayer: UIViewControllerRepresentable {
 
     final class Coordinator: NSObject, AVPlayerViewControllerDelegate {
         var exit: () -> Void
-        var picker: UIHostingController<PlaybackEpisodePicker>?
+        var picker: EpisodePickerHostingController?
+        let presentation = EpisodePickerPresentation()
         init(exit: @escaping () -> Void) { self.exit = exit }
         func playerViewControllerShouldDismiss(_ playerViewController: AVPlayerViewController) -> Bool {
             exit()
@@ -206,14 +207,14 @@ struct NativePlayer: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: AVPlayerViewController, context: Context) {
         context.coordinator.exit = exit
         if controller.player !== player { controller.player = player }
-        let pickerView = PlaybackEpisodePicker(episodes: episodes, selectedEpisode: selectedEpisode) { [weak controller] value in
+        let pickerView = PlaybackEpisodePicker(episodes: episodes, selectedEpisode: selectedEpisode, presentation: context.coordinator.presentation) { [weak controller] value in
             controller?.customOverlayViewController?.dismiss(animated: true)
             selectEpisode(value)
         }
         if let picker = context.coordinator.picker {
             picker.rootView = pickerView
         } else {
-            let picker = UIHostingController(rootView: pickerView)
+            let picker = EpisodePickerHostingController(rootView: pickerView)
             picker.title = "选集"
             picker.preferredContentSize = CGSize(width: 1920, height: 360)
             picker.view.backgroundColor = .clear
@@ -241,8 +242,11 @@ struct NativePlayer: UIViewControllerRepresentable {
                 navigation.append(UIAction(title: "下一集", image: UIImage(systemName: "forward.end.fill")) { _ in selectEpisode(next) })
             }
         }
-        navigation.append(UIMenu(title: "选集", image: UIImage(systemName: "list.bullet"), children: episodes.map { value in
-            UIAction(title: value.title, state: value.id == selectedEpisode.id ? .on : .off) { _ in selectEpisode(value) }
+        // Native menus do not expose a scroll-to-row API. Put the current episode
+        // first while keeping all other episodes in their original order.
+        let menuEpisodes = [selectedEpisode] + episodes.filter { $0.id != selectedEpisode.id }
+        navigation.append(UIMenu(title: "选集", image: UIImage(systemName: "list.bullet"), options: .singleSelection, children: menuEpisodes.map { value in
+            UIAction(title: value.id == selectedEpisode.id ? "正在播放 · \(value.title)" : value.title, state: value.id == selectedEpisode.id ? .on : .off) { _ in selectEpisode(value) }
         }))
         controller.transportBarCustomMenuItems = navigation
     }
@@ -255,10 +259,23 @@ struct NativePlayer: UIViewControllerRepresentable {
 }
 
 
+@MainActor @Observable final class EpisodePickerPresentation {
+    var revision = 0
+}
+
+final class EpisodePickerHostingController: UIHostingController<PlaybackEpisodePicker> {
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // AVKit retains this controller between presentations.
+        rootView.presentation.revision += 1
+    }
+}
+
 /// System-presented slide-up panel; selecting an episode keeps the playback session open.
 struct PlaybackEpisodePicker: View {
     let episodes: [Episode]
     let selectedEpisode: Episode
+    let presentation: EpisodePickerPresentation
     let select: (Episode) -> Void
     @FocusState private var focusedID: String?
     var body: some View {
@@ -286,8 +303,10 @@ struct PlaybackEpisodePicker: View {
                         }.padding(.vertical, 24).padding(.horizontal, 12)
                     }
                     .frame(height: 180)
-                    .task(id: selectedEpisode.id) {
-                        // Wait until the overlay has laid out its horizontal scroll content.
+                    .defaultFocus($focusedID, selectedEpisode.id)
+                    .task(id: "\(selectedEpisode.id)-\(presentation.revision)") {
+                        // The presentation revision changes after AVKit finishes showing the panel.
+                        focusedID = nil
                         await Task.yield()
                         guard !Task.isCancelled else { return }
                         proxy.scrollTo(selectedEpisode.id, anchor: .center)
