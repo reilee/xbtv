@@ -343,7 +343,7 @@ final class PlaybackEpisodePickerController: UIViewController, UICollectionViewD
             collection.scrollToItem(at: currentIndex, at: .centeredHorizontally, animated: false)
             collection.layoutIfNeeded()
             collection.selectItem(at: currentIndex, animated: false, scrollPosition: [])
-            if let cell = collection.cellForItem(at: currentIndex), let focusSystem = UIFocusSystem(for: cell) {
+            if let cell = collection.cellForItem(at: currentIndex), let focusSystem = UIFocusSystem.focusSystem(for: cell) {
                 focusSystem.requestFocusUpdate(to: cell)
                 focusSystem.updateFocusIfNeeded()
             }
