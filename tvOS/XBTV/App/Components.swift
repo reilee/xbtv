@@ -41,12 +41,16 @@ struct VideoCard: View {
 struct VideoGrid: View {
     let videos: [Video]
     let client: CatalogClient
+    var focus: FocusState<String?>.Binding? = nil
+    @FocusState private var localFocus: String?
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 290), spacing: 36)], alignment: .leading, spacing: 44) {
             ForEach(videos) { video in
                 NavigationLink(value: video) { VideoCard(video: video) }
                     .buttonStyle(.card)
                     .accessibilityHint("查看详情和剧集")
+                    .focused(focus ?? $localFocus, equals: video.id)
+                    .id(video.id)
             }
         }
         .focusSection()

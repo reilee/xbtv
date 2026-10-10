@@ -11,7 +11,11 @@ struct BrowseView: View {
     @State private var reload = 0
     @State private var pageTask: Task<Void, Never>?
     @State private var loadedRequest: String?
+    @FocusState private var focusedControl: String?
+    @State private var appendedVideoID: String?
+    private var categoryFocusID: String { "category-\(category.id)" }
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(alignment: .leading, spacing: 36) {
                 HStack(alignment: .firstTextBaseline) {
@@ -23,6 +27,8 @@ struct BrowseView: View {
                     ForEach(Category.all) { value in
                         Button(value.title) { category = value }
                             .buttonStyle(.bordered)
+                            .focused($focusedControl, equals: "category-\(value.id)")
+                            .id("category-\(value.id)")
                             .tint(category == value ? .white : .gray)
                             .accessibilityAddTraits(category == value ? .isSelected : [])
                     }
@@ -31,16 +37,32 @@ struct BrowseView: View {
                 if isLoading && videos.isEmpty {
                     ProgressView("正在加载影片…").frame(maxWidth: .infinity, minHeight: 360)
                 }
-                VideoGrid(videos: videos, client: client)
+                VideoGrid(videos: videos, client: client, focus: $focusedControl)
+                    .onExitCommand { focusedControl = categoryFocusID }
                 if let error {
                     MessageView(title: "加载失败", message: error) {
                         if videos.isEmpty { reload += 1 } else { loadMore() }
                     }
                 } else if nextURL != nil {
                     Button(isLoading ? "正在加载…" : "加载更多") { loadMore() }
-                        .disabled(isLoading).frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity)
+                        .focused($focusedControl, equals: "load-more")
+                        .onExitCommand { focusedControl = categoryFocusID }
                 }
             }.padding(.horizontal, 64).padding(.vertical, 48)
+        }
+        .onChange(of: appendedVideoID) { _, id in
+            guard let id else { return }
+            proxy.scrollTo(id, anchor: .center)
+            Task { @MainActor in
+                await Task.yield()
+                guard appendedVideoID == id else { return }
+                focusedControl = id
+            }
+        }
+        .onChange(of: focusedControl) { _, id in
+            if id == categoryFocusID { proxy.scrollTo(categoryFocusID, anchor: .top) }
+        }
         }
         .navigationDestination(for: Video.self) { video in DetailView(video: video, client: client) }
         .task(id: "\(category.id)-\(reload)") { await loadFirst() }
@@ -49,7 +71,7 @@ struct BrowseView: View {
     @MainActor private func loadFirst() async {
         let requestID = "\(category.id)-\(reload)"
         if loadedRequest == requestID, !videos.isEmpty { return }
-        pageTask?.cancel(); videos = []; nextURL = nil; error = nil; isLoading = true
+        pageTask?.cancel(); appendedVideoID = nil; videos = []; nextURL = nil; error = nil; isLoading = true
         do {
             let result = try await client.category(category)
             try Task.checkCancellation()
@@ -69,7 +91,10 @@ struct BrowseView: View {
                 try Task.checkCancellation()
                 guard category == requestedCategory else { return }
                 let existing = Set(videos.map(\.id))
-                videos.append(contentsOf: result.videos.filter { !existing.contains($0.id) })
+                let added = result.videos.filter { !existing.contains($0.id) }
+                videos.append(contentsOf: added)
+                // Move to the start of the new page, not the relocated pagination button.
+                if focusedControl == "load-more", let first = added.first { appendedVideoID = first.id }
                 self.nextURL = result.nextURL; isLoading = false
             } catch {
                 guard !Task.isCancelled else { return }

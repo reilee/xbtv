@@ -110,7 +110,6 @@ struct PlaybackView: View {
             Color.black.ignoresSafeArea()
             if session.error == nil && !session.ended {
                 NativePlayer(player: session.player, title: request.detail.video.title, episodeTitle: episode.title,
-                         next: nextEpisode.map { next in { switchEpisode(next) } },
                          episodes: request.line.episodes, selectedEpisode: episode,
                          selectEpisode: switchEpisode, exit: { dismiss() })
                 .ignoresSafeArea()
@@ -155,7 +154,6 @@ struct NativePlayer: UIViewControllerRepresentable {
     let player: AVPlayer
     let title: String
     let episodeTitle: String
-    let next: (() -> Void)?
     let episodes: [Episode]
     let selectedEpisode: Episode
     let selectEpisode: (Episode) -> Void
@@ -201,9 +199,20 @@ struct NativePlayer: UIViewControllerRepresentable {
             metadata.extendedLanguageTag = "zh-Hans"
             item.externalMetadata = [metadata]
         }
-        controller.contextualActions = next.map { action in
-            [UIAction(title: "下一集", image: UIImage(systemName: "forward.end.fill")) { _ in action() }]
-        } ?? []
+        // Transport controls disappear with AVKit's UI; contextual actions stay on screen.
+        controller.contextualActions = []
+        var navigation: [UIMenuElement] = []
+        if let index = episodes.firstIndex(of: selectedEpisode) {
+            if index > 0 {
+                let previous = episodes[index - 1]
+                navigation.append(UIAction(title: "上一集", image: UIImage(systemName: "backward.end.fill")) { _ in selectEpisode(previous) })
+            }
+            if index + 1 < episodes.count {
+                let next = episodes[index + 1]
+                navigation.append(UIAction(title: "下一集", image: UIImage(systemName: "forward.end.fill")) { _ in selectEpisode(next) })
+            }
+        }
+        controller.transportBarCustomMenuItems = navigation
     }
     static func dismantleUIViewController(_ controller: AVPlayerViewController, coordinator: Coordinator) {
         controller.delegate = nil
