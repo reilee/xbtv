@@ -120,20 +120,35 @@ struct SearchView: UIViewControllerRepresentable {
     }
     final class Coordinator: NSObject, UISearchBarDelegate, UISearchResultsUpdating {
         let submission = Submission()
-        func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-            submission.submit(searchBar.text ?? "")
+        weak var searchController: UISearchController?
+        var pendingSearch: Task<Void, Never>?
+
+        func submitCurrent(force: Bool = true) {
+            pendingSearch?.cancel()
+            guard let bar = searchController?.searchBar else { return }
+            let keyword = (bar.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if force || keyword != submission.query { submission.submit(keyword) }
         }
+        func searchBarSearchButtonClicked(_ searchBar: UISearchBar) { submitCurrent() }
+        func searchBarTextDidEndEditing(_ searchBar: UISearchBar) { submitCurrent(force: false) }
         func updateSearchResults(for searchController: UISearchController) {
-            // Editing, including marked Chinese text, stays entirely inside UIKit.
-            // Do not replace the results controller or write text back to the search bar.
+            // Remote keyboards don't always send searchButtonClicked on tvOS.
+            // Wait for text changes to settle without writing back into UIKit or rebuilding the input.
+            pendingSearch?.cancel()
+            pendingSearch = Task { @MainActor [weak self] in
+                do { try await Task.sleep(for: .milliseconds(800)) } catch { return }
+                guard !Task.isCancelled else { return }
+                self?.submitCurrent(force: false)
+            }
         }
     }
     func makeCoordinator() -> Coordinator { Coordinator() }
     func makeUIViewController(context: Context) -> UISearchContainerViewController {
         let results = UIHostingController(rootView:
-            SearchResultsView(client: client, submission: context.coordinator.submission)
+            SearchResultsView(client: client, submission: context.coordinator.submission, submit: { [weak coordinator = context.coordinator] in coordinator?.submitCurrent() })
                 .environment(library).preferredColorScheme(.dark).tint(.white))
         let search = UISearchController(searchResultsController: results)
+        context.coordinator.searchController = search
         search.searchBar.placeholder = "影片名称"
         search.searchBar.searchBarStyle = .minimal
         search.searchBar.delegate = context.coordinator
@@ -144,6 +159,7 @@ struct SearchView: UIViewControllerRepresentable {
         // The native controller and its text input remain stable for the whole tab lifetime.
     }
     static func dismantleUIViewController(_ controller: UISearchContainerViewController, coordinator: Coordinator) {
+        coordinator.pendingSearch?.cancel()
         controller.searchController.searchBar.delegate = nil
         controller.searchController.searchResultsUpdater = nil
     }
@@ -152,6 +168,7 @@ struct SearchView: UIViewControllerRepresentable {
 private struct SearchResultsView: View {
     let client: CatalogClient
     let submission: SearchView.Submission
+    let submit: () -> Void
     @State private var videos: [Video] = []
     @State private var isLoading = false
     @State private var error: String?
@@ -159,8 +176,10 @@ private struct SearchResultsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 36) {
+                    Button("搜索", action: submit).buttonStyle(.bordered)
+                        .accessibilityHint("搜索当前输入的影片名称")
                     if submission.query.isEmpty {
-                        MessageView(title: "找一部想看的影片", message: "输入影片名称或关键词，完成后按搜索。中文输入可使用 iPhone 的 Apple TV 键盘。", symbol: "magnifyingglass")
+                        MessageView(title: "找一部想看的影片", message: "输入影片名称或关键词，停止输入后自动搜索，也可按下方搜索按钮。中文输入可使用 iPhone 的 Apple TV 键盘。", symbol: "magnifyingglass")
                     } else if isLoading {
                         ProgressView("正在搜索…").frame(maxWidth: .infinity, minHeight: 360)
                     } else if let error {
