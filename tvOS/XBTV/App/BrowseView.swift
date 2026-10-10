@@ -82,6 +82,7 @@ struct BrowseView: View {
 struct SearchView: View {
     let client: CatalogClient
     @State private var query = ""
+    @State private var submittedQuery = ""
     @State private var videos: [Video] = []
     @State private var isLoading = false
     @State private var error: String?
@@ -89,8 +90,8 @@ struct SearchView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 36) {
-                if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    MessageView(title: "找一部想看的影片", message: "输入影片名称或关键词。中文输入可使用 iPhone 的 Apple TV 键盘；中文听写取决于系统支持。", symbol: "magnifyingglass")
+                if submittedQuery.isEmpty {
+                    MessageView(title: "找一部想看的影片", message: "输入影片名称或关键词，完成后按搜索。中文输入可使用 iPhone 的 Apple TV 键盘。", symbol: "magnifyingglass")
                 } else if isLoading {
                     ProgressView("正在搜索…").frame(maxWidth: .infinity, minHeight: 360)
                 } else if let error {
@@ -105,15 +106,19 @@ struct SearchView: View {
         }
         .searchable(text: $query, prompt: "影片名称")
         .navigationDestination(for: Video.self) { video in DetailView(video: video, client: client) }
-        .task(id: "\(query)-\(reload)") { await search() }
+        .onSubmit(of: .search) {
+            let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
+            if submittedQuery == value { reload += 1 } else { submittedQuery = value }
+        }
+        .task(id: "\(submittedQuery)-\(reload)") { await search() }
     }
     @MainActor private func search() async {
-        videos = []; error = nil
-        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { isLoading = false; return }
+        let keyword = submittedQuery
+        guard !keyword.isEmpty else { videos = []; error = nil; isLoading = false; return }
+        error = nil
         isLoading = true
         do {
-            try await Task.sleep(for: .milliseconds(450))
-            let result = try await client.search(query)
+            let result = try await client.search(keyword)
             try Task.checkCancellation(); videos = result.videos; isLoading = false
         } catch {
             guard !Task.isCancelled else { return }
