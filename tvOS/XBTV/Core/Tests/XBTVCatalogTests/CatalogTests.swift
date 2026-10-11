@@ -41,6 +41,17 @@ final class CatalogTests: XCTestCase {
         XCTAssertEqual(detail.actors, "甲 / 乙"); XCTAssertEqual(detail.lines[0].title, "主线")
         XCTAssertEqual(detail.lines[1].title, "备用")
     }
+    func testDetailParsesXiaobaoTVPlayListPanels() throws {
+        let html = """
+        <div class="myui-content__detail"><h1 class="title">节目</h1></div>
+        <div class="myui-panel"><div class="myui-panel_hd"><div class="myui-panel__head"><h3 class="title">高清线路</h3></div></div>
+        <div class="myui-panel_bd"><ul class="myui-content__list sort-list"><li><a href="/movie/play/9-1-1.html">第1集</a></li><li><a href="/movie/play/9-1-2.html">第2集</a></li></ul></div></div>
+        """
+        let detail = try parser.detail(html, pageURL: URL(string: "https://www.xiaobaotv.tv/movie/detail/9.html")!)
+        XCTAssertEqual(detail.lines.count, 1)
+        XCTAssertEqual(detail.lines[0].title, "高清线路")
+        XCTAssertEqual(detail.lines[0].episodes.map(\.title), ["第1集", "第2集"])
+    }
     func testEscapedSignedHLSAndNestedPlayerObject() throws {
         let html = #"<script>var player_aaaa={"vod_data":{"name":"test"},"encrypt":0,"url":"https:\/\/cdn.example.com\/index.m3u8?token=a%2Fb&x=1","url_next":"https://wrong.example.com/next.m3u8"};</script>"#
         let url = try parser.stream(html)

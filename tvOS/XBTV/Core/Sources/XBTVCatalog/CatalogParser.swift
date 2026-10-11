@@ -122,24 +122,43 @@ public struct CatalogParser: Sendable {
         }
         var lines: [PlayLine] = []
         let tabs = try doc.select(".nav-tabs a[href^='#']").array()
-        for pane in try doc.select(".tab-content > div").array() {
-            let paneID = pane.id()
-            var episodes: [Episode] = []
-            var seen = Set<String>()
-            for a in try pane.select("a[href*='/movie/play/'], a[href*='/vod/play/']").array() {
-                guard let page = url(try a.attr("href"), relativeTo: pageURL), seen.insert(page.absoluteString).inserted else { continue }
-                episodes.append(Episode(title: try a.text(), pageURL: page))
+        let panes = try doc.select(".tab-content > div").array()
+        if !panes.isEmpty {
+            for pane in panes {
+                let paneID = pane.id()
+                let episodes = try playEpisodes(in: pane, pageURL: pageURL)
+                guard !episodes.isEmpty else { continue }
+                let tab = try tabs.first { try $0.attr("href") == "#\(paneID)" }
+                let name = try tab?.text() ?? "线路 \(lines.count + 1)"
+                lines.append(PlayLine(id: paneID.isEmpty ? episodes[0].id : paneID, title: name, episodes: episodes))
             }
-            guard !episodes.isEmpty else { continue }
-            let tab = try tabs.first { try $0.attr("href") == "#\(paneID)" }
-            let name = try tab?.text() ?? "线路 \(lines.count + 1)"
-            lines.append(PlayLine(id: paneID.isEmpty ? episodes[0].id : paneID, title: name, episodes: episodes))
+        } else {
+            // xiaobaotv.tv lists each source as a separate panel rather than tab panes.
+            for (index, list) in try doc.select("ul.myui-content__list.sort-list").array().enumerated() {
+                let episodes = try playEpisodes(in: list, pageURL: pageURL)
+                guard !episodes.isEmpty else { continue }
+                let panel = list.parent()?.parent()
+                let name = try panel?.select(".myui-panel__head h3.title").first()?.text() ?? "线路 \(index + 1)"
+                lines.append(PlayLine(id: "line-\(index + 1)", title: name, episodes: episodes))
+            }
         }
         let video = Video(id: pageURL.deletingPathExtension().lastPathComponent, title: title,
                           coverURL: try thumb.flatMap { try cover($0, page: pageURL) }, year: fields["年份"] ?? "",
                           status: try doc.select(".myui-content__detail .pic-text").text(), detailURL: pageURL)
         return VideoDetail(video: video, area: fields["地区"] ?? "", actors: fields["主演"] ?? "",
                            director: fields["导演"] ?? "", summary: try doc.select(".content .data, .myui-content__desc .data").first()?.text() ?? "", lines: lines)
+    }
+
+    private func playEpisodes(in container: Element, pageURL: URL) throws -> [Episode] {
+        var episodes: [Episode] = []
+        var seen = Set<String>()
+        for link in try container.select("a[href*='/movie/play/'], a[href*='/vod/play/']").array() {
+            guard let page = url(try link.attr("href"), relativeTo: pageURL), seen.insert(page.absoluteString).inserted else { continue }
+            let title = try link.text()
+            guard !title.isEmpty else { continue }
+            episodes.append(Episode(title: title, pageURL: page))
+        }
+        return episodes
     }
 
     public func stream(_ html: String) throws -> URL {
