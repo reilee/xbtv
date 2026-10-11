@@ -18,9 +18,9 @@ struct DetailView: View {
     @State private var error: String?
     @State private var reload = 0
     @State private var playback: PlaybackRequest?
-    @State private var showSummary = false
+    @FocusState private var focusedAction: String?
     @FocusState private var focusedEpisode: String?
-    @Namespace private var defaultFocus
+    @Namespace private var detailFocus
     private var selectedLine: PlayLine? {
         detail?.lines.first { $0.id == selectedLineID } ?? detail?.lines.first
     }
@@ -43,19 +43,22 @@ struct DetailView: View {
                             if !detail.director.isEmpty { Text("导演：\(detail.director)").font(.callout).foregroundStyle(.secondary) }
                             if !detail.actors.isEmpty { Text("主演：\(detail.actors)").font(.callout).foregroundStyle(.secondary).lineLimit(2) }
                             if !detail.summary.isEmpty {
-                                Text(detail.summary).font(.body).lineLimit(3).foregroundStyle(.secondary)
-                                Button("完整简介") { showSummary = true }.buttonStyle(.bordered)
+                                Text(detail.summary).font(.body).foregroundStyle(.secondary)
                             }
                             HStack(spacing: 24) {
                                 if let (line, episode, record) = resumable {
                                     Button { play(detail, line: line, episode: episode, seconds: record.resumeSeconds) } label: {
                                         Label("继续观看 · \(episode.title)", systemImage: "play.fill")
-                                    }.buttonStyle(.borderedProminent).prefersDefaultFocus(true, in: defaultFocus)
+                                    }.buttonStyle(.borderedProminent)
+                                        .focused($focusedAction, equals: "resume")
+                                        .prefersDefaultFocus(true, in: detailFocus)
                                 }
                                 if let line = selectedLine, let episode = line.episodes.first {
                                     Button { play(detail, line: line, episode: episode, seconds: 0) } label: {
                                         Label(resumable == nil ? "播放" : "从头播放", systemImage: "play.fill")
-                                    }.buttonStyle(.bordered).prefersDefaultFocus(resumable == nil, in: defaultFocus)
+                                    }.buttonStyle(.bordered)
+                                        .focused($focusedAction, equals: "play")
+                                        .prefersDefaultFocus(resumable == nil, in: detailFocus)
                                 }
                             }.focusSection()
                         }.frame(maxWidth: .infinity, alignment: .leading)
@@ -94,14 +97,11 @@ struct DetailView: View {
                 } else {
                     ProgressView("正在加载详情…").frame(maxWidth: .infinity, minHeight: 500)
                 }
-            }.padding(64).focusScope(defaultFocus)
+            }.padding(64).focusScope(detailFocus)
         }
         .task(id: reload) { await load() }
         .fullScreenCover(item: $playback, onDismiss: restoreEpisodeFocus) { request in
             PlaybackView(request: request, client: client)
-        }
-        .sheet(isPresented: $showSummary) {
-            ScrollView { Text(detail?.summary ?? "").font(.title3).padding(80).focusable() }
         }
     }
     @MainActor private func load() async {
@@ -116,11 +116,13 @@ struct DetailView: View {
     }
     private func play(_ detail: VideoDetail, line: PlayLine, episode: Episode, seconds: Double) {
         selectedLineID = line.id
+        focusedEpisode = episode.id
         playback = PlaybackRequest(detail: detail, line: line, episode: episode, resumeSeconds: seconds)
     }
     private func restoreEpisodeFocus() {
-        if let record = library.record(for: video), selectedLine?.episodes.contains(where: { $0.id == record.episode.id }) == true {
-            focusedEpisode = record.episode.id
+        guard let episodeID = playback?.episode.id else { return }
+        DispatchQueue.main.async {
+            focusedEpisode = episodeID
         }
     }
 }

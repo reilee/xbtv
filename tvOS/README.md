@@ -34,6 +34,12 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 Xcode Cloud 构建脚本、自动构建号和中英文测试说明已配置。
 首次连接和工作流参数见 [XCODE_CLOUD.md](XCODE_CLOUD.md)。
 
+### 自动递增版本号
+
+每次创建 Git commit 时，pre-commit 钩子会将补丁版本递增一位（例如 `1.0.0` → `1.0.1`），
+并同步更新 `tvOS/project.yml` 与 Xcode 工程。克隆仓库后，在仓库根目录运行
+`scripts/install_tvos_version_hook.sh` 安装钩子。版本号更新会加入本次提交。
+
 ## 功能与操作
 
 - 顶部原生标签：浏览、搜索、最近观看、设置。

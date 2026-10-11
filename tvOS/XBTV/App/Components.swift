@@ -23,17 +23,42 @@ struct Poster: View {
 struct VideoCard: View {
     let video: Video
     var subtitle: String? = nil
+    @Environment(\.isFocused) private var isFocused
+
+    private var metadata: String {
+        subtitle ?? [video.year, video.status].filter { !$0.isEmpty }.joined(separator: " · ")
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             Poster(url: video.coverURL, width: 250)
-            Text(video.title)
-                .font(.system(size: 27, weight: .medium))
-                .lineLimit(2).minimumScaleFactor(0.85)
-                .frame(height: 68, alignment: .topLeading)
-            Text(subtitle ?? [video.year, video.status].filter { !$0.isEmpty }.joined(separator: " · "))
-                .font(.system(size: 23)).foregroundStyle(.secondary).lineLimit(1)
+                .overlay(alignment: .bottom) {
+                    if isFocused {
+                        LinearGradient(
+                            colors: [.clear, .black.opacity(0.78)],
+                            startPoint: .center,
+                            endPoint: .bottom
+                        )
+                        .clipShape(.rect(cornerRadius: 12))
+                        .overlay(alignment: .bottomLeading) {
+                            Text(video.title)
+                                .font(.system(size: 25, weight: .semibold))
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.85)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 16)
+                        }
+                    }
+                }
+
+            Text(isFocused ? metadata : video.title)
+                .font(.system(size: 21, weight: isFocused ? .regular : .medium))
+                .foregroundStyle(isFocused ? .secondary : .primary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 250, alignment: .leading)
+        .frame(width: 250, alignment: .topLeading)
         .accessibilityElement(children: .combine)
     }
 }
