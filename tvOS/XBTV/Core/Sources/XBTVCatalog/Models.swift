@@ -15,6 +15,16 @@ public struct Video: Identifiable, Hashable, Codable, Sendable {
 public struct Category: Identifiable, Hashable, Sendable {
     public let id: String
     public let title: String
+    public var symbol: String {
+        switch id {
+        case "1": "film"
+        case "2": "tv"
+        case "3": "sparkles.tv"
+        case "4": "music.mic"
+        case "11": "play.rectangle.on.rectangle"
+        default: "square.grid.2x2"
+        }
+    }
     public var path: String { "/vod/type/\(id).html" }
     public static let all: [Category] = [
         .init(id: "1", title: "电影"), .init(id: "2", title: "电视剧"),

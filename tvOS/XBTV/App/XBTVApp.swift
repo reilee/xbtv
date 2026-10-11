@@ -31,7 +31,6 @@ import XBTVCatalog
         history.upsert(value); persist()
     }
     func remove(_ id: String) { history.remove(id: id); persist() }
-    func clear() { history = WatchHistory(); storageError = nil; persist() }
     private func persist() {
         do { defaults.set(try JSONEncoder().encode(history.records), forKey: "watchHistory.v1") }
         catch { storageError = "观看记录保存失败。" }
@@ -43,17 +42,19 @@ struct RootView: View {
     let client: CatalogClient
     var body: some View {
         TabView {
-            Tab("浏览", systemImage: "square.grid.2x2") {
-                NavigationStack { BrowseView(client: client) }
-            }
-            Tab("搜索", systemImage: "magnifyingglass", role: .search) {
-                NavigationStack { SearchView(client: client) }
-            }
             Tab("最近观看", systemImage: "clock") {
                 NavigationStack { HistoryView(client: client) }
             }
-            Tab("设置", systemImage: "gearshape") {
-                NavigationStack { SettingsView() }
+            ForEach(Category.all) { category in
+                Tab(category.title, systemImage: category.symbol) {
+                    NavigationStack { BrowseView(client: client, initialCategory: category) }
+                }
+            }
+            Tab(role: .search) {
+                NavigationStack { SearchView(client: client) }
+            } label: {
+                Image(systemName: "magnifyingglass")
+                    .accessibilityLabel("搜索")
             }
         }
     }

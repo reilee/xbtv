@@ -6,10 +6,15 @@ public actor CatalogClient {
     public init(baseURL: URL = URL(string: "https://www.xiaobaotv.com")!, session: URLSession = .shared) {
         parser = CatalogParser(baseURL: baseURL); self.session = session
     }
-    public func category(_ category: Category, nextURL: URL? = nil) async throws -> CatalogPage {
-        guard let pageURL = nextURL ?? parser.url(category.path) else { throw CatalogError.invalidURL }
+    public func category(
+        _ category: Category,
+        filterPath: String? = nil,
+        nextURL: URL? = nil,
+        allowsEmpty: Bool = false
+    ) async throws -> CatalogPage {
+        guard let pageURL = nextURL ?? parser.url(filterPath ?? category.path) else { throw CatalogError.invalidURL }
         let page = try parser.listing(await fetch(pageURL), pageURL: pageURL)
-        guard !page.videos.isEmpty else { throw CatalogError.changedPage }
+        guard allowsEmpty || !page.videos.isEmpty else { throw CatalogError.changedPage }
         return page
     }
     public func search(_ keyword: String) async throws -> CatalogPage {

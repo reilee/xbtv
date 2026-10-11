@@ -23,6 +23,7 @@ struct Poster: View {
 struct VideoCard: View {
     let video: Video
     var subtitle: String? = nil
+    var rank: Int? = nil
     @Environment(\.isFocused) private var isFocused
 
     private var metadata: String {
@@ -30,35 +31,45 @@ struct VideoCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Poster(url: video.coverURL, width: 250)
-                .overlay(alignment: .bottom) {
-                    if isFocused {
-                        LinearGradient(
-                            colors: [.clear, .black.opacity(0.78)],
-                            startPoint: .center,
-                            endPoint: .bottom
-                        )
-                        .clipShape(.rect(cornerRadius: 12))
-                        .overlay(alignment: .bottomLeading) {
-                            Text(video.title)
-                                .font(.system(size: 25, weight: .semibold))
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.85)
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 16)
+        Poster(url: video.coverURL, width: 250)
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    colors: [.clear, .black.opacity(isFocused ? 0.82 : 0.72)],
+                    startPoint: .center,
+                    endPoint: .bottom
+                )
+                .clipShape(.rect(cornerRadius: 12))
+                .overlay(alignment: .bottomLeading) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(video.title)
+                            .font(.system(size: isFocused ? 27 : 23, weight: .semibold))
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.8)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        if isFocused, !metadata.isEmpty {
+                            Text(metadata)
+                                .font(.system(size: 19, weight: .medium))
+                                .lineLimit(1)
+                                .foregroundStyle(.white.opacity(0.82))
                         }
                     }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
                 }
-
-            Text(isFocused ? metadata : video.title)
-                .font(.system(size: 21, weight: isFocused ? .regular : .medium))
-                .foregroundStyle(isFocused ? .secondary : .primary)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 250, alignment: .topLeading)
+            .overlay(alignment: .topLeading) {
+                if let rank {
+                    Text(String(rank))
+                        .font(.system(size: 68, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.7), radius: 5, y: 2)
+                        .padding(16)
+                }
+            }
+            .frame(width: 250, height: 375)
+            .clipShape(.rect(cornerRadius: 12))
         .accessibilityElement(children: .combine)
     }
 }

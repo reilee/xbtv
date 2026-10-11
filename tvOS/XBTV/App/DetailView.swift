@@ -9,6 +9,23 @@ struct PlaybackRequest: Identifiable {
     let resumeSeconds: Double
 }
 
+private struct DetailActionButtonStyle: ButtonStyle {
+    @Environment(\.isFocused) private var isFocused
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(isFocused ? Color.black : Color.white)
+            .padding(.horizontal, 22)
+            .padding(.vertical, 12)
+            .background {
+                Capsule()
+                    .fill(isFocused ? Color.white : Color.white.opacity(0.20))
+            }
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.16), value: isFocused)
+    }
+}
+
 struct DetailView: View {
     let video: Video
     let client: CatalogClient
@@ -20,7 +37,6 @@ struct DetailView: View {
     @State private var playback: PlaybackRequest?
     @FocusState private var focusedAction: String?
     @FocusState private var focusedEpisode: String?
-    @Namespace private var detailFocus
     private var selectedLine: PlayLine? {
         detail?.lines.first { $0.id == selectedLineID } ?? detail?.lines.first
     }
@@ -49,16 +65,14 @@ struct DetailView: View {
                                 if let (line, episode, record) = resumable {
                                     Button { play(detail, line: line, episode: episode, seconds: record.resumeSeconds) } label: {
                                         Label("继续观看 · \(episode.title)", systemImage: "play.fill")
-                                    }.buttonStyle(.borderedProminent)
+                                    }.buttonStyle(DetailActionButtonStyle())
                                         .focused($focusedAction, equals: "resume")
-                                        .prefersDefaultFocus(true, in: detailFocus)
                                 }
                                 if let line = selectedLine, let episode = line.episodes.first {
                                     Button { play(detail, line: line, episode: episode, seconds: 0) } label: {
                                         Label(resumable == nil ? "播放" : "从头播放", systemImage: "play.fill")
-                                    }.buttonStyle(.bordered)
+                                    }.buttonStyle(DetailActionButtonStyle())
                                         .focused($focusedAction, equals: "play")
-                                        .prefersDefaultFocus(resumable == nil, in: detailFocus)
                                 }
                             }.focusSection()
                         }.frame(maxWidth: .infinity, alignment: .leading)
@@ -97,7 +111,7 @@ struct DetailView: View {
                 } else {
                     ProgressView("正在加载详情…").frame(maxWidth: .infinity, minHeight: 500)
                 }
-            }.padding(64).focusScope(detailFocus)
+            }.padding(64)
         }
         .task(id: reload) { await load() }
         .fullScreenCover(item: $playback, onDismiss: restoreEpisodeFocus) { request in
@@ -110,6 +124,8 @@ struct DetailView: View {
             let result = try await client.detail(video); try Task.checkCancellation()
             detail = result
             selectedLineID = result.lines.first { $0.id == library.record(for: video)?.lineID }?.id ?? result.lines.first?.id
+            await Task.yield()
+            focusedAction = resumable == nil ? "play" : "resume"
         } catch {
             guard !Task.isCancelled else { return }; self.error = error.localizedDescription
         }
@@ -117,11 +133,13 @@ struct DetailView: View {
     private func play(_ detail: VideoDetail, line: PlayLine, episode: Episode, seconds: Double) {
         selectedLineID = line.id
         focusedEpisode = episode.id
+        focusedAction = nil
         playback = PlaybackRequest(detail: detail, line: line, episode: episode, resumeSeconds: seconds)
     }
     private func restoreEpisodeFocus() {
         guard let episodeID = playback?.episode.id else { return }
         DispatchQueue.main.async {
+            focusedAction = nil
             focusedEpisode = episodeID
         }
     }
