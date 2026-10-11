@@ -18,7 +18,7 @@ public struct Category: Identifiable, Hashable, Sendable {
     public var symbol: String {
         switch id {
         case "1": "film"
-        case "2": "tv"
+        case "2": "tv.fill"
         case "3": "music.mic"
         case "4": "sparkles.tv"
         case "5": "play.rectangle.on.rectangle"
