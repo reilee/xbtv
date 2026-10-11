@@ -4,7 +4,7 @@ import SwiftSoup
 /// DOM parsing mirrors the Android Jsoup selectors; JavaScript is never executed.
 public struct CatalogParser: Sendable {
     public let baseURL: URL
-    public init(baseURL: URL = URL(string: "https://www.xiaobaotv.com")!) { self.baseURL = baseURL }
+    public init(baseURL: URL = URL(string: "https://www.xiaobaotv.tv")!) { self.baseURL = baseURL }
 
     public func url(_ raw: String, relativeTo page: URL? = nil) -> URL? {
         let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -19,7 +19,7 @@ public struct CatalogParser: Sendable {
         var seen = Set<String>()
         let items = try doc.select("#searchList > li, .myui-vodlist__box, .myui-vodlist__item, .vodlist__thumb")
         for item in items.array() {
-            guard let link = try item.select("a[href*='/vod/detail/']").first(),
+            guard let link = try item.select("a[href*='/movie/detail/'], a[href*='/vod/detail/']").first(),
                   let detail = url(try link.attr("href"), relativeTo: pageURL) else { continue }
             let id = detail.deletingPathExtension().lastPathComponent
             guard !id.isEmpty, seen.insert(id).inserted else { continue }
@@ -42,6 +42,63 @@ public struct CatalogParser: Sendable {
         }
         // Search may legitimately be empty; callers distinguish that from a broken category page.
         return CatalogPage(videos: videos, nextURL: next)
+    }
+
+    public func homepageRails(_ html: String, pageURL: URL, category: Category) throws -> CategoryHomeRails {
+        let doc = try SwiftSoup.parse(html, pageURL.absoluteString)
+        let hotTitles = ["本月热门\(category.title)", "最热\(category.title)"]
+        let monthly = try homepageSection(doc, titles: hotTitles, listSelector: "ul.myui-vodlist__text", pageURL: pageURL)
+        let allTime = try homepageSection(doc, titles: ["\(category.title)总榜单"], listSelector: "ul.myui-vodlist__text", pageURL: pageURL)
+        return CategoryHomeRails(monthlyPopular: monthly, allTime: allTime)
+    }
+
+    private func homepageSection(_ doc: Document, titles: [String], listSelector: String, pageURL: URL) throws -> CatalogPage {
+        guard let heading = try doc.select("h3.title").array().first(where: { titles.contains(try $0.text()) }) else {
+            return CatalogPage(videos: [], nextURL: nil)
+        }
+
+        var moreURL: URL?
+        if let header = heading.parent(), let link = try header.select("a.more[href]").first() {
+            moreURL = url(try link.attr("href"), relativeTo: pageURL)
+        }
+
+        var ancestor = heading.parent()
+        var list: Element?
+        while let current = ancestor {
+            if let candidate = try current.select(listSelector).first() {
+                list = candidate
+                break
+            }
+            ancestor = current.parent()
+        }
+        guard let list else { return CatalogPage(videos: [], nextURL: moreURL) }
+
+        var videos: [Video] = []
+        var seen = Set<String>()
+        for link in try list.select("a[href*='/movie/detail/'], a[href*='/vod/detail/']").array() {
+            guard let detailURL = url(try link.attr("href"), relativeTo: pageURL), detailURL.host == baseURL.host else { continue }
+            let id = detailURL.deletingPathExtension().lastPathComponent
+            guard !id.isEmpty, seen.insert(id).inserted else { continue }
+            let title = (try link.attr("title")).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !title.isEmpty else { continue }
+
+            var card: Element? = link
+            for _ in 0..<6 {
+                guard let current = card, current.parent() != nil else { break }
+                if current.tagName() == "li" || current.hasClass("myui-vodlist__box") { break }
+                card = current.parent()
+            }
+            let poster = try card?.select(".myui-vodlist__thumb").first()
+            videos.append(Video(
+                id: id,
+                title: title,
+                coverURL: try poster.map { try cover($0, page: pageURL) } ?? nil,
+                year: try card?.select(".pic-tag .tag").text() ?? "",
+                status: try card?.select(".pic-text").text() ?? "",
+                detailURL: detailURL
+            ))
+        }
+        return CatalogPage(videos: videos, nextURL: moreURL)
     }
 
     public func detail(_ html: String, pageURL: URL) throws -> VideoDetail {
@@ -69,7 +126,7 @@ public struct CatalogParser: Sendable {
             let paneID = pane.id()
             var episodes: [Episode] = []
             var seen = Set<String>()
-            for a in try pane.select("a[href*='/vod/play/']").array() {
+            for a in try pane.select("a[href*='/movie/play/'], a[href*='/vod/play/']").array() {
                 guard let page = url(try a.attr("href"), relativeTo: pageURL), seen.insert(page.absoluteString).inserted else { continue }
                 episodes.append(Episode(title: try a.text(), pageURL: page))
             }

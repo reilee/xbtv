@@ -19,16 +19,16 @@ public struct Category: Identifiable, Hashable, Sendable {
         switch id {
         case "1": "film"
         case "2": "tv"
-        case "3": "sparkles.tv"
-        case "4": "music.mic"
-        case "11": "play.rectangle.on.rectangle"
+        case "3": "music.mic"
+        case "4": "sparkles.tv"
+        case "5": "play.rectangle.on.rectangle"
         default: "square.grid.2x2"
         }
     }
-    public var path: String { "/vod/type/\(id).html" }
+    public var path: String { "/movie/type/\(id).html" }
     public static let all: [Category] = [
         .init(id: "1", title: "电影"), .init(id: "2", title: "电视剧"),
-        .init(id: "3", title: "动漫"), .init(id: "4", title: "综艺"), .init(id: "11", title: "短剧")
+        .init(id: "3", title: "综艺"), .init(id: "4", title: "动漫"), .init(id: "5", title: "短剧")
     ]
 }
 public struct Episode: Identifiable, Hashable, Codable, Sendable {
@@ -53,6 +53,10 @@ public struct VideoDetail: Sendable {
 public struct CatalogPage: Sendable {
     public let videos: [Video]
     public let nextURL: URL?
+}
+public struct CategoryHomeRails: Sendable {
+    public let monthlyPopular: CatalogPage
+    public let allTime: CatalogPage
 }
 public enum CatalogError: LocalizedError, Sendable {
     case invalidURL, http(Int), invalidHTML, changedPage, unsupportedStream

@@ -4,24 +4,24 @@ import XCTest
 
 final class CatalogTests: XCTestCase {
     let parser = CatalogParser()
-    let base = URL(string: "https://www.xiaobaotv.com/vod/type/1.html")!
+    let base = URL(string: "https://www.xiaobaotv.tv/movie/type/1.html")!
     func testListingDeduplicatesAndNormalizesImagesAndPagination() throws {
         let html = """
-        <div class="myui-vodlist__box"><a href="/vod/detail/12.html" title="测试 &amp; 电影" data-original="//img.example.com/a.webp"><span class="pic-tag"><span class="tag">2026</span></span><span class="pic-text">HD</span></a></div>
-        <div class="myui-vodlist__box"><a href="/vod/detail/12.html" title="duplicate"></a></div>
-        <div class="myui-vodlist__box"><a href="/vod/detail/13.html" title="第二部" style="background-image: url('/cover.jpg')"></a></div>
-        <ul class="myui-page"><li><a href="/vod/type/1-2.html">下一页</a></li></ul>
+        <div class="myui-vodlist__box"><a href="/movie/detail/12.html" title="测试 &amp; 电影" data-original="//img.example.com/a.webp"><span class="pic-tag"><span class="tag">2026</span></span><span class="pic-text">HD</span></a></div>
+        <div class="myui-vodlist__box"><a href="/movie/detail/12.html" title="duplicate"></a></div>
+        <div class="myui-vodlist__box"><a href="/movie/detail/13.html" title="第二部" style="background-image: url('/cover.jpg')"></a></div>
+        <ul class="myui-page"><li><a href="/movie/type/1-2.html">下一页</a></li></ul>
         """
         let result = try parser.listing(html, pageURL: base)
         XCTAssertEqual(result.videos.count, 2)
         XCTAssertEqual(result.videos[0].title, "测试 & 电影")
         XCTAssertEqual(result.videos[0].coverURL?.absoluteString, "https://img.example.com/a.webp")
         XCTAssertEqual(result.videos[1].coverURL?.path, "/cover.jpg")
-        XCTAssertEqual(result.nextURL?.path, "/vod/type/1-2.html")
+        XCTAssertEqual(result.nextURL?.path, "/movie/type/1-2.html")
     }
     func testSearchLayoutAndEmptyCover() throws {
         let html = """
-        <ul id="searchList"><li><div class="thumb"><a href="/vod/detail/9.html"></a></div><h4 class="title"><a>搜索结果</a></h4></li></ul>
+        <ul id="searchList"><li><div class="thumb"><a href="/movie/detail/9.html"></a></div><h4 class="title"><a>搜索结果</a></h4></li></ul>
         """
         let page = try parser.listing(html, pageURL: base)
         XCTAssertEqual(page.videos.first?.title, "搜索结果")
@@ -32,9 +32,9 @@ final class CatalogTests: XCTestCase {
         <div class="myui-content__thumb"><a><img data-original="/cover.webp"></a></div><div class="myui-content__detail"><h1 class="title">节目</h1><p class="data"><span>地区：</span><a>日本</a><span class="split-line"></span><span>年份：</span><a>2026</a></p><p class="data"><span>主演：</span><a>甲</a><a>乙</a></p></div>
         <div class="content"><span class="sketch">简略</span><span class="data">完整剧情简介</span></div>
         <ul class="nav-tabs"><li><a href="#line2">备用</a></li><li><a href="#line1">主线</a></li></ul>
-        <div class="tab-content"><div id="line1"><li><a href="/vod/play/9-1-1.html">第1集</a></li></div><div id="line2"><li><a href="/vod/play/9-2-1.html">第1集</a></li></div></div>
+        <div class="tab-content"><div id="line1"><li><a href="/movie/play/9-1-1.html">第1集</a></li></div><div id="line2"><li><a href="/movie/play/9-2-1.html">第1集</a></li></div></div>
         """
-        let detail = try parser.detail(html, pageURL: URL(string: "https://www.xiaobaotv.com/vod/detail/9.html")!)
+        let detail = try parser.detail(html, pageURL: URL(string: "https://www.xiaobaotv.tv/movie/detail/9.html")!)
         XCTAssertEqual(detail.video.coverURL?.path, "/cover.webp")
         XCTAssertEqual(detail.video.year, "2026"); XCTAssertEqual(detail.area, "日本")
         XCTAssertEqual(detail.summary, "完整剧情简介")

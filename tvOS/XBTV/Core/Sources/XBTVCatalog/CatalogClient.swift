@@ -3,7 +3,7 @@ import Foundation
 public actor CatalogClient {
     public let parser: CatalogParser
     private let session: URLSession
-    public init(baseURL: URL = URL(string: "https://www.xiaobaotv.com")!, session: URLSession = .shared) {
+    public init(baseURL: URL = URL(string: "https://www.xiaobaotv.tv")!, session: URLSession = .shared) {
         parser = CatalogParser(baseURL: baseURL); self.session = session
     }
     public func category(
@@ -16,6 +16,11 @@ public actor CatalogClient {
         let page = try parser.listing(await fetch(pageURL), pageURL: pageURL)
         guard allowsEmpty || !page.videos.isEmpty else { throw CatalogError.changedPage }
         return page
+    }
+    public func homepageRails(_ category: Category) async throws -> CategoryHomeRails {
+        let pageURL = parser.baseURL
+        let html = try await fetch(pageURL)
+        return try parser.homepageRails(html, pageURL: pageURL, category: category)
     }
     public func search(_ keyword: String) async throws -> CatalogPage {
         guard !keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {

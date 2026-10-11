@@ -40,13 +40,6 @@ private enum CatalogRailKind: String, CaseIterable, Identifiable {
         case .allTime: "总榜单"
         }
     }
-
-    func path(for category: XBTVCatalog.Category) -> String {
-        switch self {
-        case .latest: category.path
-        case .monthlyPopular, .allTime: "/vod/show/by/hits/id/\(category.id).html"
-        }
-    }
 }
 
 private struct CatalogRailView: View {
@@ -66,7 +59,7 @@ private struct CatalogRailView: View {
                 LazyHStack(alignment: .top, spacing: 34) {
                     ForEach(Array(videos.enumerated()), id: \.element.id) { index, video in
                         NavigationLink(value: video) {
-                            VideoCard(video: video, rank: kind == .allTime ? index + 1 : nil)
+                            CatalogRailCard(video: video, client: client, rank: kind == .latest ? nil : index + 1)
                         }
                         .buttonStyle(.card)
                         .accessibilityHint("查看详情和剧集")
@@ -82,6 +75,11 @@ private struct CatalogRailView: View {
                             Button("重试") { Task { await loadFirst() } }.buttonStyle(.bordered)
                         }
                         .frame(width: 300, height: 375)
+                    } else if videos.isEmpty {
+                        Text("首页暂未提供此榜单")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 300, height: 375)
                     } else if isLoading {
                         ProgressView().frame(width: 250, height: 375)
                     } else if let error {
@@ -104,7 +102,14 @@ private struct CatalogRailView: View {
         guard videos.isEmpty, !isLoading else { return }
         isLoading = true; error = nil
         do {
-            let page = try await client.category(category, filterPath: kind.path(for: category), allowsEmpty: true)
+            let page: CatalogPage
+            switch kind {
+            case .latest:
+                page = try await client.category(category, allowsEmpty: true)
+            case .monthlyPopular, .allTime:
+                let homepage = try await client.homepageRails(category)
+                page = kind == .monthlyPopular ? homepage.monthlyPopular : homepage.allTime
+            }
             try Task.checkCancellation()
             videos = page.videos; nextURL = page.nextURL; isLoading = false
         } catch {
@@ -129,6 +134,21 @@ private struct CatalogRailView: View {
                 self.error = error.localizedDescription; isLoading = false
             }
         }
+    }
+}
+
+private struct CatalogRailCard: View {
+    let video: Video
+    let client: CatalogClient
+    let rank: Int?
+    @State private var resolvedVideo: Video?
+
+    var body: some View {
+        VideoCard(video: resolvedVideo ?? video, rank: rank)
+            .task(id: video.id) {
+                guard video.coverURL == nil else { return }
+                resolvedVideo = (try? await client.detail(video))?.video
+            }
     }
 }
 
@@ -351,15 +371,12 @@ private struct SearchFilterSelection {
 
     var path: String? {
         guard let category else { return nil }
-        var parts = ["/vod/show"]
-        if !plot.isEmpty { parts.append("class/\(encode(plot))") }
+        var parts = ["/movie/show", typeID.isEmpty ? category.id : typeID]
         if !area.isEmpty { parts.append("area/\(encode(area))") }
         if sort != "time" { parts.append("by/\(sort)") }
-        parts.append("id/\(typeID.isEmpty ? category.id : typeID)")
         if !year.isEmpty { parts.append("year/\(year)") }
-        if !language.isEmpty { parts.append("lang/\(encode(language))") }
-        parts[parts.count - 1] += ".html"
-        return parts.joined(separator: "/")
+        // xiaobaotv.tv exposes type, area, year, and sort in its catalog filters.
+        return parts.joined(separator: "/") + ".html"
     }
 
     private func encode(_ value: String) -> String {
@@ -378,8 +395,8 @@ private struct SearchFilterSelection {
         switch category.id {
         case "1": values = [("全部", "1"), ("动作片", "101"), ("喜剧片", "102"), ("爱情片", "103"), ("科幻片", "104"), ("剧情片", "105"), ("悬疑片", "106"), ("惊悚片", "107"), ("恐怖片", "108"), ("犯罪片", "109"), ("冒险片", "110"), ("奇幻片", "111"), ("灾难片", "112"), ("战争片", "113"), ("动画电影片", "114"), ("歌舞片", "115"), ("网络电影片", "116"), ("同性片", "117"), ("经典片", "118"), ("其它片", "119"), ("记录片", "120")]
         case "2": values = [("全部", "2"), ("国产剧", "201"), ("港台剧", "202"), ("台湾剧", "203"), ("日韩剧", "204"), ("日本剧", "205"), ("欧美剧", "206"), ("泰国剧", "207"), ("海外剧", "208"), ("新马泰剧", "209"), ("其他剧", "210")]
-        case "3": values = [("全部", "3"), ("国产动漫", "301"), ("日韩动漫", "302"), ("港台动漫", "303"), ("欧美动漫", "304"), ("其它动漫", "305")]
-        case "4": values = [("全部", "4"), ("大陆综艺", "401"), ("日韩综艺", "402"), ("港台综艺", "403"), ("欧美综艺", "404"), ("新马泰综艺", "405"), ("其它综艺", "406")]
+        case "3": values = [("全部", "3"), ("大陆综艺", "301"), ("日韩综艺", "302"), ("港台综艺", "303"), ("欧美综艺", "304"), ("新马泰综艺", "305"), ("其它综艺", "306")]
+        case "4": values = [("全部", "4"), ("国产动漫", "401"), ("日韩动漫", "402"), ("港台动漫", "403"), ("欧美动漫", "404"), ("其它动漫", "405")]
         default: values = [("全部", category.id)]
         }
         return values.map { SearchFilterOption(title: $0.0, value: $0.1) }
@@ -390,9 +407,9 @@ private struct SearchFilterSelection {
         switch category?.id {
         case "1": values = ["爱情", "古装", "动作", "伦理", "悬疑", "犯罪", "谍战", "历史", "喜剧", "奇幻", "科幻", "家庭", "青春", "剧情", "冒险", "纪录", "动画", "人物", "文化", "其他"]
         case "2": values = ["爱情", "古装", "悬疑", "都市", "喜剧", "战争", "剧情", "青春", "历史", "网剧", "奇幻", "冒险", "励志", "犯罪", "商战", "恐怖", "穿越", "农村", "人物", "商业", "生活", "其他"]
-        case "3": values = ["冒险", "战斗", "搞笑", "经典", "科幻", "玄幻", "魔幻", "武侠", "恋爱", "推理", "日常", "校园", "悬疑", "真人", "历史", "竞技", "其他"]
-        case "4": values = ["游戏", "脱口秀", "音乐", "情感", "生活", "职场", "真人秀", "搞笑", "公益", "艺术", "访谈", "益智", "体育", "少儿", "时尚", "人物", "其他"]
-        case "11": values = ["古装", "复仇", "强者", "悬疑", "甜宠", "神豪", "穿越", "虐恋", "逆袭", "重生", "萌宝"]
+        case "3": values = ["游戏", "脱口秀", "音乐", "情感", "生活", "职场", "真人秀", "搞笑", "公益", "艺术", "访谈", "益智", "体育", "少儿", "时尚", "人物", "其他"]
+        case "4": values = ["冒险", "战斗", "搞笑", "经典", "科幻", "玄幻", "魔幻", "武侠", "恋爱", "推理", "日常", "校园", "悬疑", "真人", "历史", "竞技", "其他"]
+        case "5": values = ["古装", "复仇", "强者", "悬疑", "甜宠", "神豪", "穿越", "虐恋", "逆袭", "重生", "萌宝"]
         default: values = []
         }
         return [SearchFilterOption(title: "全部", value: "")] + values.map { SearchFilterOption(title: $0, value: $0) }
